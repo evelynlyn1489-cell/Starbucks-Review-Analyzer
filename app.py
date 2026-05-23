@@ -5,7 +5,6 @@ import streamlit as st
 from transformers import (
     pipeline,
     AutoTokenizer,
-    AutoModelForSequenceClassification,
     AutoModelForSeq2SeqLM,
 )
 
@@ -49,8 +48,8 @@ sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 def analyze_sentiment(review):
     """Pipeline 1: 用微调后的 DistilBERT 判断好评/差评"""
     result = sentiment_analyzer(review, truncation=True, max_length=256)[0]
-    label = result["label"]     # 'Positive' 或 'Negative'
-    score = result["score"]     # 置信度 0-1
+    label = result["label"]
+    score = result["score"]
     return label, score
 
 
@@ -68,26 +67,35 @@ def generate_summary(review):
     return summary
 
 
-def generate_reply(review, sentiment):
-    """Pipeline 3: 用 LaMini-Flan-T5 生成客服回复"""
+def generate_reply(review, sentiment, summary):
+    """Pipeline 3: 用 LaMini-Flan-T5 生成针对性的客服回复"""
     if sentiment == "Negative":
-        tone = "apologetic and helpful"
-        instruction = "Apologize for the bad experience and offer to make it right."
+        prompt = (
+            f"You are a Starbucks customer service manager. "
+            f"A customer left this negative review: \"{summary}\" "
+            f"Write a specific, personalized reply that: "
+            f"1) Apologizes for the specific issues they mentioned, "
+            f"2) Explains what Starbucks will do to fix those specific problems, "
+            f"3) Offers a concrete gesture like a complimentary drink. "
+            f"Do not use generic phrases. Address their exact complaints."
+        )
     else:
-        tone = "grateful and warm"
-        instruction = "Thank the customer and invite them to visit again."
+        prompt = (
+            f"You are a Starbucks customer service manager. "
+            f"A customer left this positive review: \"{summary}\" "
+            f"Write a specific, personalized thank-you reply that: "
+            f"1) Mentions the specific things they praised, "
+            f"2) Shares their feedback with the team or barista they mentioned, "
+            f"3) Invites them to try a new seasonal drink on their next visit. "
+            f"Do not use generic phrases. Reference their exact compliments."
+        )
 
-    prompt = (
-        f"You are a Starbucks customer service representative. "
-        f"Write a {tone} reply to this customer review. {instruction}\n\n"
-        f"Customer review: {review}\n\n"
-        f"Reply:"
-    )
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     output_ids = gen_model.generate(
         **inputs,
-        max_length=150,
+        max_length=200,
         num_beams=5,
+        no_repeat_ngram_size=3,
         early_stopping=True
     )
     reply = gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
@@ -121,14 +129,14 @@ if st.button("🔍 Analyze", type="primary"):
         with st.spinner("Generating summary..."):
             summary = generate_summary(review)
 
-        # Pipeline 3: 自动回复
+        # Pipeline 3: 自动回复（把摘要传进去，让回复更针对性）
         with st.spinner("Generating service reply..."):
-            reply = generate_reply(review, sentiment)
+            reply = generate_reply(review, sentiment, summary)
 
         # 显示结果
         st.divider()
 
-        # 情感结果（用颜色区分）
+        # 情感结果
         st.subheader("Sentiment")
         if sentiment == "Negative":
             st.error(f"😞 {sentiment} (Confidence: {confidence:.1%})")
