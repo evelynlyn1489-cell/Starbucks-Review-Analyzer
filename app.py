@@ -30,6 +30,7 @@ sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 
 def analyze_sentiment(review):
     result = sentiment_analyzer(review)[0]
+    print("Raw model output:", result)
     return result["label"], result["score"]
 
 def generate_summary(review):
