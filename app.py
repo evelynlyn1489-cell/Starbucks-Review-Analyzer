@@ -1,4 +1,5 @@
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 import streamlit as st
@@ -12,17 +13,12 @@ def load_models():
     sentiment_analyzer = pipeline(
         "text-classification",
         model="Evelyn1489/starbucks-sentiment-distilbert",
-        device=-1,
-        torch_dtype=torch.float32
+        device=-1
     )
 
     gen_model_name = "MBZUAI/LaMini-Flan-T5-248M"
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
-    gen_model = AutoModelForSeq2SeqLM.from_pretrained(
-        gen_model_name,
-        torch_dtype=torch.float32,
-        low_cpu_mem_usage=True
-    )
+    gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
 
     return sentiment_analyzer, gen_tokenizer, gen_model
 
@@ -30,7 +26,6 @@ sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 
 def analyze_sentiment(review):
     result = sentiment_analyzer(review)[0]
-    print("Raw model output:", result)
     return result["label"], result["score"]
 
 def generate_summary(review):
@@ -59,13 +54,11 @@ def generate_reply(review, sentiment, summary):
             f"and invite them to visit again soon. "
             f"End with \"Sincerely, Starbucks Customer Care Team\""
         )
-
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         output_ids = gen_model.generate(**inputs, max_length=200, num_beams=5, no_repeat_ngram_size=3, early_stopping=True)
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
-# Persist all data to avoid refresh loss
 if "sentiment_result" not in st.session_state:
     st.session_state.sentiment_result = None
 if "confidence_result" not in st.session_state:
@@ -74,14 +67,11 @@ if "summary_result" not in st.session_state:
     st.session_state.summary_result = ""
 if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
-if "review_input" not in st.session_state:
-    st.session_state.review_input = ""
 
 st.title("☕ Starbucks Review Analyzer")
 st.markdown("Analyze customer reviews using 3 AI pipelines: Sentiment Analysis, Summarization, and Auto Service Reply.")
 
-review = st.text_area("Enter a customer review:", height=150, value=st.session_state.review_input)
-st.session_state.review_input = review
+review = st.text_area("Enter a customer review:", height=150)
 
 if st.button("🔍 Analyze", type="primary"):
     if review.strip():
@@ -105,20 +95,20 @@ if st.session_state.sentiment_result is not None:
     else:
         st.success(f"😊 {st.session_state.sentiment_result} (Confidence: {st.session_state.confidence_result:.1%})")
 
-    if st.session_state.confidence_result < 0.75:
-        st.warning("⚠️ Low confidence — this review may be ambiguous.")
-
     st.subheader("Summary")
     st.info(st.session_state.summary_result)
 
     st.subheader("Suggested Service Reply")
-    edited_reply = st.text_area("Edit your reply:", value=st.session_state.reply_result, height=200, key="reply_editor")
-    st.session_state.reply_result = edited_reply
+    edited = st.text_area("Edit your reply:", value=st.session_state.reply_result, height=200, key="final_reply")
 
-    # Pure Streamlit‑based copy button (read latest edited text from session state directly)
-    if st.button("📋 Copy to Clipboard", type="secondary"):
-        st.code(st.session_state.reply_result, language=None)
-        st.info("👆 Click the copy icon in the top-right corner of the box above.")
+    safe_text = edited.replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n")
+    copy_button = f"""
+    <button onclick="navigator.clipboard.writeText(`{edited}`); alert('Copied successfully!');"
+    style="padding:10px 24px; background:#0071e3; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
+    📋 ONE-CLICK COPY
+    </button>
+    """
+    st.components.v1.html(copy_button, height=60)
 
 st.divider()
-st.caption("ISOM5240 Group Project | Sentiment model: Fine-tuned DistilBERT | Summary & Reply model: LaMini-Flan-T5-248M")
+st.caption("ISOM5240 Group Project")
