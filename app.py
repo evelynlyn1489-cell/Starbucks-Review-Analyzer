@@ -116,9 +116,8 @@ if st.session_state.sentiment_result is not None:
 
     # Pure Streamlit‑based copy button (read latest edited text from session state directly)
     if st.button("📋 Copy to Clipboard", type="secondary"):
-        import pyperclip
-        pyperclip.copy(st.session_state.reply_result)
-        st.success("✅ Copied latest edited reply!")
+        st.code(st.session_state.reply_result, language=None)
+        st.info("👆 Click the copy icon in the top-right corner of the box above.")
 
 st.divider()
 st.caption("ISOM5240 Group Project | Sentiment model: Fine-tuned DistilBERT | Summary & Reply model: LaMini-Flan-T5-248M")
