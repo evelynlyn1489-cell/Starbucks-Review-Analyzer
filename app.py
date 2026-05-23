@@ -71,23 +71,21 @@ def generate_reply(review, sentiment, summary):
     """Pipeline 3: 用 LaMini-Flan-T5 生成针对性的客服回复"""
     if sentiment == "Negative":
         prompt = (
-            f"You are a Starbucks customer service manager. "
-            f"A customer left this negative review: \"{summary}\" "
-            f"Write a specific, personalized reply that: "
-            f"1) Apologizes for the specific issues they mentioned, "
-            f"2) Explains what Starbucks will do to fix those specific problems, "
-            f"3) Offers a concrete gesture like a complimentary drink. "
-            f"Do not use generic phrases. Address their exact complaints."
+            f"Write a reply from Starbucks directly to a customer. "
+            f"The customer complained: \"{summary}\" "
+            f"Start with \"Dear valued customer,\" then apologize for their specific issues, "
+            f"explain how you will fix those problems, "
+            f"and offer them a free drink on their next visit. "
+            f"End with \"Sincerely, Starbucks Customer Care Team\""
         )
     else:
         prompt = (
-            f"You are a Starbucks customer service manager. "
-            f"A customer left this positive review: \"{summary}\" "
-            f"Write a specific, personalized thank-you reply that: "
-            f"1) Mentions the specific things they praised, "
-            f"2) Shares their feedback with the team or barista they mentioned, "
-            f"3) Invites them to try a new seasonal drink on their next visit. "
-            f"Do not use generic phrases. Reference their exact compliments."
+            f"Write a reply from Starbucks directly to a customer. "
+            f"The customer praised: \"{summary}\" "
+            f"Start with \"Dear valued customer,\" then thank them for the specific things they mentioned, "
+            f"say you will share their kind words with the store team, "
+            f"and invite them to try a new seasonal drink next time. "
+            f"End with \"Sincerely, Starbucks Customer Care Team\""
         )
 
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
@@ -129,7 +127,7 @@ if st.button("🔍 Analyze", type="primary"):
         with st.spinner("Generating summary..."):
             summary = generate_summary(review)
 
-        # Pipeline 3: 自动回复（把摘要传进去，让回复更针对性）
+        # Pipeline 3: 自动回复
         with st.spinner("Generating service reply..."):
             reply = generate_reply(review, sentiment, summary)
 
