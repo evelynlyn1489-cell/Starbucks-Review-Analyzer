@@ -6,16 +6,25 @@ import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
-st.set_page_config(page_title="Starbucks Review Analyzer", page_icon="☕", layout="centered")
+# ─── Page config ───
+st.set_page_config(
+    page_title="Starbucks Review Analyzer",
+    page_icon="☕",
+    layout="centered"
+)
 
+
+# ─── Load models (cached) ───
 @st.cache_resource(show_spinner="Loading models...")
 def load_models():
+    # Pipeline 1: Sentiment Analysis (fine-tuned DistilBERT)
     sentiment_analyzer = pipeline(
         "text-classification",
         model="Evelyn1489/starbucks-sentiment-distilbert",
         device=-1
     )
 
+    # Pipeline 2 & 3: Summarization + Reply (LaMini-Flan-T5)
     gen_model_name = "MBZUAI/LaMini-Flan-T5-248M"
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
@@ -24,18 +33,27 @@ def load_models():
 
 sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 
+
+# ─── Pipeline functions ───
 def analyze_sentiment(review):
+    """Pipeline 1: Classify review as Positive or Negative."""
     result = sentiment_analyzer(review)[0]
     return result["label"], result["score"]
 
+
 def generate_summary(review):
+    """Pipeline 2: Generate a 1-2 sentence summary of the review."""
     prompt = f"Summarize the following customer review in 1-2 sentences:\n\n{review}"
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
-        output_ids = gen_model.generate(**inputs, max_length=80, num_beams=4, early_stopping=True)
+        output_ids = gen_model.generate(
+            **inputs, max_length=80, num_beams=4, early_stopping=True
+        )
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
+
 def generate_reply(review, sentiment, summary):
+    """Pipeline 3: Generate a customer service reply based on sentiment."""
     if sentiment == "Negative":
         prompt = (
             f"Write a reply from Starbucks directly to a customer. "
@@ -54,11 +72,17 @@ def generate_reply(review, sentiment, summary):
             f"and invite them to visit again soon. "
             f"End with \"Sincerely, Starbucks Customer Care Team\""
         )
+
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
-        output_ids = gen_model.generate(**inputs, max_length=200, num_beams=5, no_repeat_ngram_size=3, early_stopping=True)
+        output_ids = gen_model.generate(
+            **inputs, max_length=200, num_beams=5,
+            no_repeat_ngram_size=3, early_stopping=True
+        )
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
+
+# ─── Session state ───
 if "sentiment_result" not in st.session_state:
     st.session_state.sentiment_result = None
 if "confidence_result" not in st.session_state:
@@ -68,9 +92,16 @@ if "summary_result" not in st.session_state:
 if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
 
-st.title("☕ Starbucks Review Analyzer")
-st.markdown("Analyze customer reviews using 3 AI pipelines: Sentiment Analysis, Summarization, and Auto Service Reply.")
 
+# ─── UI: Header ───
+st.title("☕ Starbucks Review Analyzer")
+st.markdown(
+    "Analyze customer reviews using 3 AI pipelines: "
+    "Sentiment Analysis, Summarization, and Auto Service Reply."
+)
+
+
+# ─── UI: Input ───
 review = st.text_area("Enter a customer review:", height=150)
 
 if st.button("🔍 Analyze", type="primary"):
@@ -86,29 +117,47 @@ if st.button("🔍 Analyze", type="primary"):
             reply = generate_reply(review, sentiment, summary)
             st.session_state.reply_result = reply
 
+
+# ─── UI: Results ───
 if st.session_state.sentiment_result is not None:
     st.divider()
 
+    # Sentiment
     st.subheader("Sentiment")
     if st.session_state.sentiment_result == "Negative":
-        st.error(f"😞 {st.session_state.sentiment_result} (Confidence: {st.session_state.confidence_result:.1%})")
+        st.error(f"😞 {st.session_state.sentiment_result} "
+                 f"(Confidence: {st.session_state.confidence_result:.1%})")
     else:
-        st.success(f"😊 {st.session_state.sentiment_result} (Confidence: {st.session_state.confidence_result:.1%})")
+        st.success(f"😊 {st.session_state.sentiment_result} "
+                   f"(Confidence: {st.session_state.confidence_result:.1%})")
 
+    # Summary
     st.subheader("Summary")
     st.info(st.session_state.summary_result)
 
+    # Reply (editable)
     st.subheader("Suggested Service Reply")
-    edited = st.text_area("Edit your reply:", value=st.session_state.reply_result, height=200, key="final_reply")
+    edited = st.text_area(
+        "Edit your reply:",
+        value=st.session_state.reply_result,
+        height=200,
+        key="final_reply"
+    )
 
-    safe_text = edited.replace("'", "\\'").replace('"', '\\"').replace("\n", "\\n")
-    copy_button = f"""
-    <button onclick="navigator.clipboard.writeText(`{edited}`); alert('Copied successfully!');"
-    style="padding:10px 24px; background:#0071e3; color:white; border:none; border-radius:8px; font-size:16px; cursor:pointer;">
-    📋 ONE-CLICK COPY
+    # Copy button (browser clipboard API, no external libraries)
+    safe_text = edited.replace("`", "\\`").replace("$", "\\$")
+    copy_html = f"""
+    <button onclick="navigator.clipboard.writeText(`{safe_text}`);
+        this.innerText='✅ Copied!';
+        setTimeout(()=>this.innerText='📋 Copy to Clipboard',2000);"
+        style="padding:8px 20px; background:#1E3932; color:white;
+        border:none; border-radius:8px; font-size:14px; cursor:pointer;">
+        📋 Copy to Clipboard
     </button>
     """
-    st.components.v1.html(copy_button, height=60)
+    st.components.v1.html(copy_html, height=50)
 
+
+# ─── UI: Footer ───
 st.divider()
 st.caption("ISOM5240 Group Project")
