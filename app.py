@@ -5,206 +5,191 @@ import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
-# ─── Page config ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
-    page_icon="☕",
+    page_icon="https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png",
     layout="centered",
     initial_sidebar_state="collapsed"
 )
 
-# ─── Starbucks brand CSS ───
+# ─── Starbucks-inspired CSS (brand greens, Sodo Sans spirit, clean cards) ───
 st.markdown("""
 <style>
-    /* === Starbucks brand colors === */
-    :root {
-        --sbx-green: #00704A;
-        --sbx-green-dark: #006241;
-        --sbx-green-light: #D4E9E2;
-        --sbx-black: #27251F;
-        --sbx-warm: #F2F0EB;
-    }
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=Playfair+Display:wght@600;700&display=swap');
 
-    /* Hide default Streamlit header & footer */
-    #MainMenu {visibility: hidden;}
-    header {visibility: hidden;}
-    footer {visibility: hidden;}
+:root {
+    --g1: #1E3932;
+    --g2: #00704A;
+    --g3: #00A862;
+    --g4: #D4E9E2;
+    --g5: #F1F8F6;
+    --warm: #F9F6F2;
+    --ink: #1E3932;
+    --ink2: #3C6255;
+    --ink3: #6B8F71;
+    --white: #FFFFFF;
+    --red: #D14836;
+    --red-bg: #FDF0EE;
+    --gold: #CBA258;
+    --gold-bg: #FBF7EF;
+}
 
-    /* Page background */
-    .stApp {
-        background-color: var(--sbx-warm);
-    }
+/* ── Reset ── */
+#MainMenu, header, footer {visibility:hidden}
+.stApp {background:var(--warm);font-family:'DM Sans',sans-serif}
+h1,h2,h3,h4 {font-family:'Playfair Display',serif !important;color:var(--ink) !important}
 
-    /* Custom header bar */
-    .sbx-header {
-        background: linear-gradient(135deg, #006241 0%, #00704A 100%);
-        padding: 1.8rem 2rem;
-        border-radius: 0 0 20px 20px;
-        margin: -1rem -1rem 2rem -1rem;
-        text-align: center;
-    }
-    .sbx-header img {
-        width: 60px;
-        margin-bottom: 0.5rem;
-    }
-    .sbx-header h1 {
-        color: white !important;
-        font-size: 2rem;
-        margin: 0;
-        font-weight: 700;
-        letter-spacing: 0.5px;
-    }
-    .sbx-header p {
-        color: #D4E9E2;
-        font-size: 0.95rem;
-        margin: 0.4rem 0 0 0;
-    }
+/* ── Hero ── */
+.hero {
+    background: var(--g1);
+    margin: -6rem -4rem 0 -4rem;
+    padding: 3rem 2rem 2.5rem;
+    text-align:center;
+    position:relative;
+    overflow:hidden;
+}
+.hero::before {
+    content:'';position:absolute;inset:0;
+    background:
+        radial-gradient(circle at 20% 50%, rgba(0,168,98,.12) 0%, transparent 50%),
+        radial-gradient(circle at 80% 30%, rgba(0,112,74,.15) 0%, transparent 50%);
+}
+.hero-logo {
+    width:72px;height:72px;border-radius:50%;
+    border:2px solid rgba(255,255,255,.2);
+    margin:0 auto 1rem;display:block;position:relative;z-index:1;
+}
+.hero h1 {
+    color:var(--white) !important;font-size:1.9rem;margin:0;
+    position:relative;z-index:1;letter-spacing:.3px;
+}
+.hero p {
+    color:var(--g4);font-size:.92rem;margin:.4rem 0 0;
+    font-family:'DM Sans',sans-serif;position:relative;z-index:1;
+}
 
-    /* Card container */
-    .sbx-card {
-        background: white;
-        border-radius: 16px;
-        padding: 1.5rem;
-        margin-bottom: 1rem;
-        box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-    }
+/* ── Pipeline pills ── */
+.pills {
+    display:flex;justify-content:center;gap:.6rem;
+    margin:1.6rem auto 1.2rem;flex-wrap:wrap;
+}
+.pill {
+    background:var(--white);
+    border:1.5px solid var(--g4);
+    color:var(--g1);
+    padding:.35rem .9rem;border-radius:999px;
+    font-size:.72rem;font-weight:500;letter-spacing:.5px;
+    text-transform:uppercase;
+}
+.pill-dot {color:var(--g3);margin:0 .15rem;font-size:.6rem}
 
-    /* Section labels */
-    .sbx-label {
-        color: var(--sbx-green-dark);
-        font-size: 0.8rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-        margin-bottom: 0.5rem;
-    }
+/* ── Cards ── */
+.card {
+    background:var(--white);
+    border-radius:14px;
+    padding:1.4rem 1.5rem;
+    margin-bottom:.9rem;
+    border:1px solid rgba(30,57,50,.06);
+    box-shadow:0 1px 4px rgba(30,57,50,.04);
+}
 
-    /* Sentiment badges */
-    .badge-neg {
-        background: #FFF0F0;
-        border: 1px solid #FFCDD2;
-        color: #C62828;
-        padding: 0.7rem 1.2rem;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    .badge-pos {
-        background: #E8F5E9;
-        border: 1px solid #A5D6A7;
-        color: #2E7D32;
-        padding: 0.7rem 1.2rem;
-        border-radius: 12px;
-        font-size: 1.1rem;
-        font-weight: 600;
-        display: inline-block;
-    }
-    .badge-warn {
-        background: #FFF8E1;
-        border: 1px solid #FFE082;
-        color: #F57F17;
-        padding: 0.5rem 1rem;
-        border-radius: 10px;
-        font-size: 0.85rem;
-        display: inline-block;
-        margin-top: 0.5rem;
-    }
+/* ── Section eyebrow ── */
+.eyebrow {
+    font-family:'DM Sans',sans-serif;
+    font-size:.65rem;font-weight:700;
+    text-transform:uppercase;letter-spacing:2px;
+    color:var(--g2);margin-bottom:.6rem;
+}
 
-    /* Summary box */
-    .sbx-summary {
-        background: var(--sbx-green-light);
-        border-left: 4px solid var(--sbx-green);
-        padding: 1rem 1.2rem;
-        border-radius: 0 12px 12px 0;
-        font-size: 0.95rem;
-        color: var(--sbx-black);
-        line-height: 1.6;
-    }
+/* ── Sentiment chips ── */
+.chip-neg {
+    display:inline-flex;align-items:center;gap:.5rem;
+    background:var(--red-bg);
+    border:1px solid #F5C6C0;
+    color:var(--red);
+    padding:.65rem 1.2rem;border-radius:10px;
+    font-size:1.05rem;font-weight:600;
+}
+.chip-pos {
+    display:inline-flex;align-items:center;gap:.5rem;
+    background:#EBF7EE;
+    border:1px solid #A8DAAF;
+    color:#1B7A2B;
+    padding:.65rem 1.2rem;border-radius:10px;
+    font-size:1.05rem;font-weight:600;
+}
+.chip-warn {
+    display:inline-block;margin-top:.5rem;
+    background:var(--gold-bg);border:1px solid #E8D5A8;
+    color:#8B6914;padding:.4rem .9rem;border-radius:8px;
+    font-size:.8rem;font-weight:500;
+}
 
-    /* Reply box */
-    .sbx-reply {
-        background: #FAFAFA;
-        border: 1px solid #E0E0E0;
-        padding: 1rem 1.2rem;
-        border-radius: 12px;
-        font-size: 0.95rem;
-        color: var(--sbx-black);
-        line-height: 1.6;
-        white-space: pre-wrap;
-    }
+/* ── Summary strip ── */
+.summary-strip {
+    background:var(--g5);
+    border-left:3px solid var(--g2);
+    padding:.9rem 1.1rem;
+    border-radius:0 10px 10px 0;
+    color:var(--ink);font-size:.92rem;line-height:1.65;
+}
 
-    /* Analyze button */
-    .stButton > button[kind="primary"] {
-        background: linear-gradient(135deg, #006241 0%, #00704A 100%) !important;
-        color: white !important;
-        border: none !important;
-        border-radius: 12px !important;
-        padding: 0.7rem 2rem !important;
-        font-size: 1rem !important;
-        font-weight: 600 !important;
-        width: 100%;
-        transition: all 0.2s;
-    }
-    .stButton > button[kind="primary"]:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 15px rgba(0,112,74,0.3) !important;
-    }
+/* ── Reply block ── */
+.reply-block {
+    background:var(--warm);
+    border:1px solid #E8E4DD;
+    padding:1rem 1.2rem;border-radius:10px;
+    color:var(--ink);font-size:.92rem;line-height:1.65;
+    white-space:pre-wrap;
+}
 
-    /* Text area */
-    .stTextArea textarea {
-        border-radius: 12px !important;
-        border: 1.5px solid #D4E9E2 !important;
-        font-size: 0.95rem !important;
-        padding: 1rem !important;
-    }
-    .stTextArea textarea:focus {
-        border-color: var(--sbx-green) !important;
-        box-shadow: 0 0 0 2px rgba(0,112,74,0.15) !important;
-    }
+/* ── Button ── */
+div.stButton > button[kind="primary"] {
+    background:var(--g1) !important;
+    color:var(--white) !important;
+    border:none !important;border-radius:10px !important;
+    padding:.65rem 1.6rem !important;
+    font-family:'DM Sans',sans-serif !important;
+    font-size:.92rem !important;font-weight:600 !important;
+    letter-spacing:.3px;width:100%;
+    transition:background .2s,transform .15s;
+}
+div.stButton > button[kind="primary"]:hover {
+    background:var(--g2) !important;
+    transform:translateY(-1px);
+}
 
-    /* Pipeline indicator */
-    .pipeline-flow {
-        display: flex;
-        justify-content: center;
-        gap: 0.5rem;
-        align-items: center;
-        margin: 1rem 0;
-        flex-wrap: wrap;
-    }
-    .pipeline-step {
-        background: white;
-        border: 1.5px solid var(--sbx-green);
-        color: var(--sbx-green-dark);
-        padding: 0.4rem 0.8rem;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-    }
-    .pipeline-arrow {
-        color: var(--sbx-green);
-        font-size: 0.9rem;
-    }
+/* ── Textarea ── */
+.stTextArea textarea {
+    border-radius:10px !important;
+    border:1.5px solid var(--g4) !important;
+    font-size:.9rem !important;padding:.9rem !important;
+    background:var(--white) !important;
+    font-family:'DM Sans',sans-serif !important;
+}
+.stTextArea textarea:focus {
+    border-color:var(--g2) !important;
+    box-shadow:0 0 0 3px rgba(0,112,74,.1) !important;
+}
 
-    /* Footer */
-    .sbx-footer {
-        text-align: center;
-        color: #9E9E9E;
-        font-size: 0.75rem;
-        padding: 1.5rem 0 1rem 0;
-    }
+/* ── Footer ── */
+.foot {
+    text-align:center;color:var(--ink3);
+    font-size:.7rem;padding:1.8rem 0 .8rem;
+    letter-spacing:.3px;
+}
+.foot a {color:var(--g2);text-decoration:none}
 </style>
 """, unsafe_allow_html=True)
 
 
-# ─── Load models ───
-@st.cache_resource(show_spinner="☕ Brewing your AI models... This may take a minute on first run.")
+# ─── Models ───
+@st.cache_resource(show_spinner="☕ Brewing your AI models...")
 def load_models():
     sentiment_analyzer = pipeline(
         "text-classification",
         model="Evelyn1489/starbucks-sentiment-distilbert",
-        device=-1,
-        torch_dtype=torch.float32
+        device=-1, torch_dtype=torch.float32
     )
     gen_model_name = "MBZUAI/LaMini-Flan-T5-248M"
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
@@ -216,7 +201,7 @@ def load_models():
 sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 
 
-# ─── Analysis functions ───
+# ─── Functions ───
 def analyze_sentiment(review):
     result = sentiment_analyzer(review)[0]
     return result["label"], result["score"]
@@ -225,129 +210,121 @@ def generate_summary(review):
     prompt = f"Summarize the following customer review in 1-2 sentences:\n\n{review}"
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
-        output_ids = gen_model.generate(**inputs, max_length=80, num_beams=4, early_stopping=True)
-    return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
+        out = gen_model.generate(**inputs, max_length=80, num_beams=4, early_stopping=True)
+    return gen_tokenizer.decode(out[0], skip_special_tokens=True)
 
 def generate_reply(review, sentiment, summary):
     if sentiment == "Negative":
-        prompt = (
-            f"Write a short apology letter to a Starbucks customer. "
-            f"The customer said: {summary} "
-            f"Apologize for these exact problems and offer a free drink."
-        )
+        prompt = (f"Write a short apology letter to a Starbucks customer. "
+                  f"The customer said: {summary} "
+                  f"Apologize for these exact problems and offer a free drink.")
     else:
-        prompt = (
-            f"Write a short thank you letter to a Starbucks customer. "
-            f"The customer said: {summary} "
-            f"Thank them for these exact compliments and invite them back."
-        )
+        prompt = (f"Write a short thank you letter to a Starbucks customer. "
+                  f"The customer said: {summary} "
+                  f"Thank them for these exact compliments and invite them back.")
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
-        output_ids = gen_model.generate(
+        out = gen_model.generate(
             **inputs, max_length=200, num_beams=5,
             no_repeat_ngram_size=3, temperature=0.7, early_stopping=True
         )
-    return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
+    return gen_tokenizer.decode(out[0], skip_special_tokens=True)
 
 
-# ─── Session state ───
-for key in ["sentiment_result", "confidence_result", "summary_result", "reply_result", "review_input"]:
-    if key not in st.session_state:
-        st.session_state[key] = None if "result" in key and "summary" not in key and "reply" not in key else ""
+# ─── State ───
+for k in ["sentiment_result","confidence_result","summary_result","reply_result","review_input"]:
+    if k not in st.session_state:
+        st.session_state[k] = None if k in ("sentiment_result","confidence_result") else ""
 
 
-# ─── Header ───
+# ─── Hero header ───
 st.markdown("""
-<div class="sbx-header">
-    <img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png" alt="Starbucks Logo">
+<div class="hero">
+    <img class="hero-logo" src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png" alt="Starbucks">
     <h1>Review Analyzer</h1>
     <p>AI-powered customer feedback analysis</p>
 </div>
 """, unsafe_allow_html=True)
 
-# Pipeline flow indicator
 st.markdown("""
-<div class="pipeline-flow">
-    <span class="pipeline-step">📊 Sentiment</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">📝 Summary</span>
-    <span class="pipeline-arrow">→</span>
-    <span class="pipeline-step">💬 Reply</span>
+<div class="pills">
+    <span class="pill">📊 Sentiment</span>
+    <span class="pill-dot">●</span>
+    <span class="pill">📝 Summary</span>
+    <span class="pill-dot">●</span>
+    <span class="pill">💬 Reply</span>
 </div>
 """, unsafe_allow_html=True)
 
 
-# ─── Input section ───
-st.markdown('<div class="sbx-card">', unsafe_allow_html=True)
+# ─── Input ───
+st.markdown('<div class="card">', unsafe_allow_html=True)
 review = st.text_area(
-    "Paste a customer review below:",
-    height=140,
+    "Paste a customer review",
+    height=130,
     value=st.session_state.review_input or "",
-    placeholder="e.g., I waited 30 minutes for my coffee and it was cold when I got it. The barista was rude and got my order wrong..."
+    placeholder="I waited 30 minutes for my coffee and it was cold when I got it. The barista was rude and got my order wrong…"
 )
 st.session_state.review_input = review
-
-analyze_clicked = st.button("☕ Analyze Review", type="primary")
+clicked = st.button("☕  Analyze Review", type="primary")
 st.markdown('</div>', unsafe_allow_html=True)
 
-if analyze_clicked:
+if clicked:
     if review.strip():
-        with st.spinner("Analyzing sentiment..."):
-            sentiment, confidence = analyze_sentiment(review)
-            st.session_state.sentiment_result = sentiment
-            st.session_state.confidence_result = confidence
-        with st.spinner("Generating summary..."):
-            summary = generate_summary(review)
-            st.session_state.summary_result = summary
-        with st.spinner("Generating service reply..."):
-            reply = generate_reply(review, sentiment, summary)
-            st.session_state.reply_result = reply
+        with st.spinner("Reading sentiment..."):
+            s, c = analyze_sentiment(review)
+            st.session_state.sentiment_result = s
+            st.session_state.confidence_result = c
+        with st.spinner("Summarizing..."):
+            st.session_state.summary_result = generate_summary(review)
+        with st.spinner("Drafting reply..."):
+            st.session_state.reply_result = generate_reply(review, s, st.session_state.summary_result)
     else:
-        st.warning("Please enter a review to analyze.")
+        st.warning("Please paste a review first.")
 
 
 # ─── Results ───
 if st.session_state.sentiment_result is not None:
+    sent = st.session_state.sentiment_result
+    conf = st.session_state.confidence_result
 
     # Sentiment
-    st.markdown('<div class="sbx-card">', unsafe_allow_html=True)
-    st.markdown('<div class="sbx-label">Pipeline 1 — Sentiment Analysis</div>', unsafe_allow_html=True)
-    sentiment = st.session_state.sentiment_result
-    confidence = st.session_state.confidence_result
-    if sentiment == "Negative":
-        st.markdown(f'<div class="badge-neg">😞 Negative — {confidence:.1%} confidence</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="eyebrow">Pipeline 1 · Sentiment Analysis</div>', unsafe_allow_html=True)
+    if sent == "Negative":
+        st.markdown(f'<div class="chip-neg">😞 Negative &nbsp;·&nbsp; {conf:.1%} confidence</div>', unsafe_allow_html=True)
     else:
-        st.markdown(f'<div class="badge-pos">😊 Positive — {confidence:.1%} confidence</div>', unsafe_allow_html=True)
-    if confidence < 0.75:
-        st.markdown('<div class="badge-warn">⚠️ Low confidence — this review may be ambiguous. Please review manually.</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="chip-pos">😊 Positive &nbsp;·&nbsp; {conf:.1%} confidence</div>', unsafe_allow_html=True)
+    if conf < 0.75:
+        st.markdown('<div class="chip-warn">⚠ Low confidence — this review may be ambiguous. Manual review recommended.</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Summary
-    st.markdown('<div class="sbx-card">', unsafe_allow_html=True)
-    st.markdown('<div class="sbx-label">Pipeline 2 — Review Summary</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sbx-summary">{st.session_state.summary_result}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="eyebrow">Pipeline 2 · Review Summary</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="summary-strip">{st.session_state.summary_result}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
     # Reply
-    st.markdown('<div class="sbx-card">', unsafe_allow_html=True)
-    st.markdown('<div class="sbx-label">Pipeline 3 — Suggested Service Reply</div>', unsafe_allow_html=True)
-    st.markdown(f'<div class="sbx-reply">{st.session_state.reply_result}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="card">', unsafe_allow_html=True)
+    st.markdown('<div class="eyebrow">Pipeline 3 · Suggested Service Reply</div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="reply-block">{st.session_state.reply_result}</div>', unsafe_allow_html=True)
     st.markdown('</div>', unsafe_allow_html=True)
 
-    # Editable reply
-    with st.expander("✏️ Edit and customize the reply"):
-        edited = st.text_area("Modify the reply below:", value=st.session_state.reply_result, height=180, key="reply_editor")
+    # Edit
+    with st.expander("✏️ Edit & copy the reply"):
+        edited = st.text_area("", value=st.session_state.reply_result, height=160, key="editor", label_visibility="collapsed")
         st.session_state.reply_result = edited
         st.code(edited, language=None)
-        st.caption("Click the copy icon (top-right of the box above) to copy.")
+        st.caption("↑ Click the copy icon in the top-right corner to copy.")
 
 
 # ─── Footer ───
 st.markdown("""
-<div class="sbx-footer">
+<div class="foot">
     ISOM5240 Group Project &nbsp;·&nbsp;
     Sentiment: Fine-tuned DistilBERT &nbsp;·&nbsp;
     Summary & Reply: LaMini-Flan-T5-248M<br>
-    Starbucks Corporation &nbsp;·&nbsp; starbucks.com
+    <a href="https://www.starbucks.com" target="_blank">Starbucks Corporation</a>
 </div>
 """, unsafe_allow_html=True)
