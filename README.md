@@ -1,17 +1,20 @@
 # Starbucks Review Analyzer
 
 ## General Information
+
 - **Project Title:** Starbucks Customer Review Sentiment Analysis Application
 - **Description:** An AI-powered web application that analyzes Starbucks customer reviews through three deep learning pipelines: **Sentiment Analysis**, **Text Summarization**, and **Automated Service Reply Generation**, enabling data-driven customer experience management.
 
 Built as part of the ISOM5240 Group Project.
 
 ## Deployed Application
-- **Live App:** https://starbucks-review-analyzer-hdjyt6xktezyjxlkxpayqw.streamlit.app/
+
+- **Live App:** 🔗 **[Try the app on Streamlit Cloud]([YOUR_STREAMLIT_URL_HERE](https://starbucks-review-analyzer-hdjyt6xktezyjxlkxpayqw.streamlit.app/))**
 - **Fine-tuned Model:** https://huggingface.co/Evelyn1489/starbucks-sentiment-distilbert
 - **GitHub Repository:** https://github.com/evelynlyn1489-cell/Starbucks-Review-Analyzer
 
 ## Project Description
+
 Starbucks receives thousands of customer reviews across online platforms. Manually reading and responding to each review is time-consuming and inconsistent. This application automates the process using three Hugging Face pipelines:
 
 1. **Sentiment Analysis** classifies each review as Positive or Negative with a confidence score. Reviews with low confidence (< 75%) are flagged as ambiguous for manual review.
