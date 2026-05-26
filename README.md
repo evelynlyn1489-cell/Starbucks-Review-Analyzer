@@ -77,8 +77,7 @@ Starbucks-Review-Analyzer/
 
 - **Source:** Kaggle — Starbucks customer reviews from Consumer Affairs
 - **Collection Method:** Web-scraped reviews with star ratings (1-5), reviewer name, location, date, review text, and image links
-- **Time Period:** Reviews spanning 2000-2023, concentrated in 2014-2017
-
+- **Time Period:** Reviews spanning 2000-2023, with the highest concentration in 2014-2017 (40% of all reviews)
 ### Data Processing
 
 1. Removed 37 entries with "No Review Text" (placeholder entries with no actual content)
