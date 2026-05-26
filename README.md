@@ -2,7 +2,7 @@
 
 ## General Information
 
-- **Project Title:** Starbucks Customer Review Sentiment Analysis Application
+- **Project Title:** Starbucks Review Sentiment Analysis and Intelligent Customer Response System
 - **Description:** An AI-powered web application that analyzes Starbucks customer reviews through three deep learning pipelines: **Sentiment Analysis**, **Text Summarization**, and **Automated Service Reply Generation**, enabling data-driven customer experience management.
 
 Built as part of the ISOM5240 Group Project.
