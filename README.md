@@ -9,7 +9,7 @@ Built as part of the ISOM5240 Group Project.
 
 ## Deployed Application
 
-- **Live App:** 🔗 **[Try the app on Streamlit Cloud]([YOUR_STREAMLIT_URL_HERE](https://starbucks-review-analyzer-hdjyt6xktezyjxlkxpayqw.streamlit.app/))**
+- **Live App:** 🔗 **[Try the app on Streamlit Cloud](https://starbucks-review-analyzer-hdjyt6xktezyjxlkxpayqw.streamlit.app/)**
 - **Fine-tuned Model:** https://huggingface.co/Evelyn1489/starbucks-sentiment-distilbert
 - **GitHub Repository:** https://github.com/evelynlyn1489-cell/Starbucks-Review-Analyzer
 
