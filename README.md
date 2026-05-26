@@ -188,7 +188,9 @@ streamlit run app.py
 
 ## Acknowledgments
 
-- [Hugging Face](https://huggingface.co/) for pre-trained models and model hosting
-- [Streamlit](https://streamlit.io/) for the web application framework and free cloud hosting
-- ISOM5240 course at HKUST
-- Briney, K. (2023). The Research Data Management Workbook. https://doi.org/10.7907/z6czh-7zx60
+- **Dataset:** Harshal Honde, "Starbucks Reviews Dataset", Kaggle. https://www.kaggle.com/datasets/harshalhonde/starbucks-reviews-dataset/data
+- **README Format:** Harvard Medical School Research Data Management, "README Files". https://datamanagement.hms.harvard.edu/collect-analyze/documentation-metadata/readme-files
+- **README Template:** Briney, K. (2023). The Research Data Management Workbook. https://doi.org/10.7907/z6czh-7zx60
+- **Models:** [Hugging Face](https://huggingface.co/) for pre-trained models and model hosting
+- **Deployment:** [Streamlit](https://streamlit.io/) for the web application framework and free cloud hosting
+- **Course:** ISOM5240, HKUST
