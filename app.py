@@ -13,12 +13,18 @@ st.set_page_config(
     layout="centered"
 )
 
-# ─── Custom CSS Injection ───
+# ─── Custom CSS & Header Injection ───
+# 我们将全局样式和顶部深绿卡片通过一段 Markdown HTML 共同注入
 st.markdown("""
 <style>
     /* 全局背景色 (米色) */
     .stApp {
         background-color: #F3F0E6;
+    }
+    
+    /* 缩小页面顶部的默认留白 */
+    .block-container {
+        padding-top: 2rem !important;
     }
     
     /* 全局文本颜色 */
@@ -27,7 +33,7 @@ st.markdown("""
     }
 
     /* 标题颜色 (深绿色) */
-    h1, h2, h3, h4, h5, h6 {
+    h2, h3, h4, h5, h6 {
         color: #1E3932 !important;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
         font-weight: 800 !important;
@@ -38,7 +44,7 @@ st.markdown("""
         background-color: #006241 !important;
         color: #FFFFFF !important;
         border: none !important;
-        border-radius: 50px !important; /* 胶囊形状 */
+        border-radius: 50px !important;
         padding: 10px 24px !important;
         font-weight: bold !important;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
@@ -66,7 +72,7 @@ st.markdown("""
         box-shadow: 0 0 0 1px #006241 !important;
     }
 
-    /* 提示框/警告框样式调整 (使其更融于背景) */
+    /* 提示框/警告框样式调整 */
     div[data-testid="stAlert"] {
         background-color: rgba(255, 255, 255, 0.7) !important;
         border-left: 5px solid #006241 !important;
@@ -79,20 +85,35 @@ st.markdown("""
         border-color: #D4D0C5 !important;
     }
 </style>
+
+<div style="background-color: #2a3f36; padding: 40px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
+    <div style="position: absolute; right: -50px; top: -50px; width: 300px; height: 300px; background-color: #354e43; border-radius: 50%;"></div>
+    
+    <div style="position: relative; z-index: 1;">
+        <img src="https://upload.wikimedia.org/wikipedia/en/d/d3/Starbucks_Corporation_Logo_2011.svg" width="55" alt="Starbucks Logo" style="margin-bottom: 12px;">
+        
+        <h1 style="color: #ffffff !important; margin: 0; font-size: 34px; font-weight: bold; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+            Starbucks Review Analyzer
+        </h1>
+        
+        <hr style="border: none; border-top: 4px solid #C19A5B; width: 65px; margin: 18px 0;">
+        
+        <p style="color: #e2e8f0; font-size: 16px; margin: 0; max-width: 90%; line-height: 1.6;">
+            Instantly understand customer feedback, extract key insights, and automatically generate personalized customer service replies to enhance the Starbucks experience.
+        </p>
+    </div>
+</div>
 """, unsafe_allow_html=True)
 
 
 # ─── Load models (cached) ───
 @st.cache_resource(show_spinner="Loading models...")
 def load_models():
-    # Pipeline 1: Sentiment Analysis (fine-tuned DistilBERT)
     sentiment_analyzer = pipeline(
         "text-classification",
         model="Evelyn1489/starbucks-sentiment-distilbert",
         device=-1
     )
-
-    # Pipeline 2 & 3: Summarization + Reply (LaMini-Flan-T5)
     gen_model_name = "MBZUAI/LaMini-Flan-T5-248M"
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
@@ -104,13 +125,11 @@ sentiment_analyzer, gen_tokenizer, gen_model = load_models()
 
 # ─── Pipeline functions ───
 def analyze_sentiment(review):
-    """Pipeline 1: Classify review as Positive or Negative."""
     result = sentiment_analyzer(review)[0]
     return result["label"], result["score"]
 
 
 def generate_summary(review):
-    """Pipeline 2: Generate a 1-2 sentence summary of the review."""
     prompt = f"Summarize the following customer review in 1-2 sentences:\n\n{review}"
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
@@ -121,7 +140,6 @@ def generate_summary(review):
 
 
 def generate_reply(review, sentiment, summary):
-    """Pipeline 3: Generate a customer service reply based on sentiment."""
     if sentiment == "Negative":
         prompt = (
             f"Write a reply from Starbucks directly to a customer. "
@@ -161,15 +179,8 @@ if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
 
 
-# ─── UI: Header ───
-st.title("OUR IMPACT: Review Analyzer")
-st.markdown(
-    "Analyze customer reviews using 3 AI pipelines: "
-    "**Sentiment Analysis, Summarization, and Auto Service Reply.**"
-)
-
-
 # ─── UI: Input ───
+# (去除了原本这里的 st.title 和 st.markdown，因为已经在顶部用 HTML 写好了)
 review = st.text_area("Enter a customer review:", height=150)
 
 if st.button("🔍 Analyze", type="primary"):
@@ -190,7 +201,6 @@ if st.button("🔍 Analyze", type="primary"):
 if st.session_state.sentiment_result is not None:
     st.divider()
 
-    # Sentiment
     st.subheader("Sentiment")
     if st.session_state.sentiment_result == "Negative":
         st.error(f"😞 {st.session_state.sentiment_result} "
@@ -199,11 +209,9 @@ if st.session_state.sentiment_result is not None:
         st.success(f"😊 {st.session_state.sentiment_result} "
                    f"(Confidence: {st.session_state.confidence_result:.1%})")
 
-    # Summary
     st.subheader("Summary")
     st.info(st.session_state.summary_result)
 
-    # Reply (editable)
     st.subheader("Suggested Service Reply")
     edited = st.text_area(
         "Edit your reply:",
@@ -212,7 +220,6 @@ if st.session_state.sentiment_result is not None:
         key="final_reply"
     )
 
-    # Copy button (browser clipboard API, no external libraries)
     safe_text = edited.replace("`", "\\`").replace("$", "\\$")
     copy_html = f"""
     <button onclick="navigator.clipboard.writeText(`{safe_text}`);
