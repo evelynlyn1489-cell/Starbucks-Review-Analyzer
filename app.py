@@ -13,6 +13,74 @@ st.set_page_config(
     layout="centered"
 )
 
+# ─── Custom CSS Injection ───
+st.markdown("""
+<style>
+    /* 全局背景色 (米色) */
+    .stApp {
+        background-color: #F3F0E6;
+    }
+    
+    /* 全局文本颜色 */
+    .stApp, .stApp p, .stApp span, .stApp label, .stApp div {
+        color: #1E3932 !important;
+    }
+
+    /* 标题颜色 (深绿色) */
+    h1, h2, h3, h4, h5, h6 {
+        color: #1E3932 !important;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 800 !important;
+    }
+
+    /* 主按钮样式 (经典星巴克绿，圆角设计) */
+    div.stButton > button:first-child {
+        background-color: #006241 !important;
+        color: #FFFFFF !important;
+        border: none !important;
+        border-radius: 50px !important; /* 胶囊形状 */
+        padding: 10px 24px !important;
+        font-weight: bold !important;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        transition: all 0.3s ease;
+    }
+    
+    /* 按钮悬停效果 */
+    div.stButton > button:first-child:hover {
+        background-color: #1E3932 !important;
+        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
+        transform: translateY(-1px);
+    }
+
+    /* 文本输入框样式 */
+    .stTextArea textarea {
+        background-color: #FFFFFF !important;
+        border: 2px solid #D4D0C5 !important;
+        border-radius: 8px !important;
+        color: #1E3932 !important;
+    }
+    
+    /* 文本输入框聚焦状态 */
+    .stTextArea textarea:focus {
+        border-color: #006241 !important;
+        box-shadow: 0 0 0 1px #006241 !important;
+    }
+
+    /* 提示框/警告框样式调整 (使其更融于背景) */
+    div[data-testid="stAlert"] {
+        background-color: rgba(255, 255, 255, 0.7) !important;
+        border-left: 5px solid #006241 !important;
+        border-radius: 4px !important;
+        color: #1E3932 !important;
+    }
+
+    /* 分割线颜色 */
+    hr {
+        border-color: #D4D0C5 !important;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 
 # ─── Load models (cached) ───
 @st.cache_resource(show_spinner="Loading models...")
@@ -94,10 +162,10 @@ if "reply_result" not in st.session_state:
 
 
 # ─── UI: Header ───
-st.title("☕ Starbucks Review Analyzer")
+st.title("OUR IMPACT: Review Analyzer")
 st.markdown(
     "Analyze customer reviews using 3 AI pipelines: "
-    "Sentiment Analysis, Summarization, and Auto Service Reply."
+    "**Sentiment Analysis, Summarization, and Auto Service Reply.**"
 )
 
 
@@ -150,14 +218,15 @@ if st.session_state.sentiment_result is not None:
     <button onclick="navigator.clipboard.writeText(`{safe_text}`);
         this.innerText='✅ Copied!';
         setTimeout(()=>this.innerText='📋 Copy to Clipboard',2000);"
-        style="padding:8px 20px; background:#1E3932; color:white;
-        border:none; border-radius:8px; font-size:14px; cursor:pointer;">
+        style="padding:10px 24px; background:#006241; color:white;
+        border:none; border-radius:50px; font-size:14px; font-weight:bold; 
+        cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         📋 Copy to Clipboard
     </button>
     """
-    st.components.v1.html(copy_html, height=50)
+    st.components.v1.html(copy_html, height=60)
 
 
 # ─── UI: Footer ───
 st.divider()
-st.caption("ISOM5240 Group Project")
+st.caption("ISOM5240 Group Project | Crafted with ☕")
