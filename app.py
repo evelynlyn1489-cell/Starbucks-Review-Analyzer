@@ -13,96 +13,234 @@ st.set_page_config(
     layout="centered"
 )
 
-# ─── Custom CSS & Header Injection ───
-# 我们将全局样式和顶部深绿卡片通过一段 Markdown HTML 共同注入
+# ─── Custom CSS: Starbucks Brand Theme ───
 st.markdown("""
 <style>
-    /* 全局背景色 (米色) */
-    .stApp {
-        background-color: #F3F0E6;
-    }
-    
-    /* 缩小页面顶部的默认留白 */
-    .block-container {
-        padding-top: 2rem !important;
-    }
-    
-    /* 全局文本颜色 */
-    .stApp, .stApp p, .stApp span, .stApp label, .stApp div {
-        color: #1E3932 !important;
+    /* ── Import Fonts ── */
+    @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+    /* ── Starbucks Brand Colors ── */
+    :root {
+        --sb-green: #1E3932;
+        --sb-green-light: #00704A;
+        --sb-green-accent: #008248;
+        --sb-cream: #F2F0EB;
+        --sb-cream-dark: #E8E5DF;
+        --sb-gold: #CBA258;
+        --sb-text-dark: #1E3932;
+        --sb-text-body: #3C3C3C;
+        --sb-white: #FFFFFF;
+        --sb-red-light: #FDEAEA;
+        --sb-red: #D62B1E;
+        --sb-blue-light: #EBF4F0;
     }
 
-    /* 标题颜色 (深绿色) */
-    h2, h3, h4, h5, h6 {
-        color: #1E3932 !important;
-        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-weight: 800 !important;
+    /* ── Global Background ── */
+    .stApp, .main, [data-testid="stAppViewContainer"] {
+        background-color: var(--sb-cream) !important;
+    }
+    [data-testid="stHeader"] {
+        background-color: var(--sb-cream) !important;
+    }
+    section[data-testid="stSidebar"] {
+        background-color: var(--sb-cream-dark) !important;
     }
 
-    /* 主按钮样式 (经典星巴克绿，圆角设计) */
-    div.stButton > button:first-child {
-        background-color: #006241 !important;
-        color: #FFFFFF !important;
-        border: none !important;
-        border-radius: 50px !important;
-        padding: 10px 24px !important;
-        font-weight: bold !important;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        transition: all 0.3s ease;
+    /* ── Typography ── */
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Lora', Georgia, serif !important;
+        color: var(--sb-green) !important;
     }
-    
-    /* 按钮悬停效果 */
-    div.stButton > button:first-child:hover {
-        background-color: #1E3932 !important;
-        box-shadow: 0 6px 8px rgba(0,0,0,0.15);
-        transform: translateY(-1px);
+    p, li, span, div, label, .stMarkdown {
+        font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important;
+        color: var(--sb-text-body) !important;
     }
 
-    /* 文本输入框样式 */
+    /* ── Hero Banner ── */
+    .hero-banner {
+        background: linear-gradient(135deg, var(--sb-green) 0%, #2D5A4E 100%);
+        border-radius: 16px;
+        padding: 40px 36px 32px;
+        margin-bottom: 32px;
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-banner::before {
+        content: '';
+        position: absolute;
+        top: -40px;
+        right: -40px;
+        width: 200px;
+        height: 200px;
+        background: rgba(255,255,255,0.04);
+        border-radius: 50%;
+    }
+    .hero-banner h1 {
+        color: var(--sb-white) !important;
+        font-size: 2.2rem !important;
+        margin-bottom: 8px !important;
+        letter-spacing: -0.5px;
+    }
+    .hero-banner p {
+        color: rgba(255,255,255,0.85) !important;
+        font-size: 1.05rem;
+        margin: 0;
+        line-height: 1.6;
+    }
+    .hero-banner .accent-line {
+        width: 48px;
+        height: 3px;
+        background: var(--sb-gold);
+        border-radius: 2px;
+        margin: 16px 0;
+    }
+
+    /* ── Card Containers ── */
+    .card {
+        background: var(--sb-white);
+        border-radius: 12px;
+        padding: 28px;
+        margin-bottom: 20px;
+        box-shadow: 0 1px 4px rgba(30,57,50,0.06);
+        border: 1px solid rgba(30,57,50,0.06);
+    }
+    .card-header {
+        font-family: 'Lora', Georgia, serif;
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--sb-green);
+        margin-bottom: 14px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .card-header .icon {
+        font-size: 1.2rem;
+    }
+
+    /* ── Sentiment Badge ── */
+    .sentiment-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-radius: 10px;
+        font-family: 'Source Sans 3', sans-serif;
+        font-weight: 600;
+        font-size: 1rem;
+    }
+    .sentiment-positive {
+        background: var(--sb-blue-light);
+        color: var(--sb-green);
+        border: 1px solid rgba(0,112,74,0.15);
+    }
+    .sentiment-negative {
+        background: var(--sb-red-light);
+        color: var(--sb-red);
+        border: 1px solid rgba(214,43,30,0.12);
+    }
+
+    /* ── Summary Box ── */
+    .summary-box {
+        background: var(--sb-cream);
+        border-left: 3px solid var(--sb-gold);
+        border-radius: 0 10px 10px 0;
+        padding: 18px 22px;
+        font-size: 0.98rem;
+        line-height: 1.7;
+        color: var(--sb-text-body);
+    }
+
+    /* ── Text Area Styling ── */
     .stTextArea textarea {
-        background-color: #FFFFFF !important;
-        border: 2px solid #D4D0C5 !important;
-        border-radius: 8px !important;
-        color: #1E3932 !important;
+        background: var(--sb-white) !important;
+        border: 1.5px solid var(--sb-cream-dark) !important;
+        border-radius: 10px !important;
+        font-family: 'Source Sans 3', sans-serif !important;
+        font-size: 0.95rem !important;
+        color: var(--sb-text-body) !important;
+        padding: 16px !important;
+        transition: border-color 0.2s ease;
     }
-    
-    /* 文本输入框聚焦状态 */
     .stTextArea textarea:focus {
-        border-color: #006241 !important;
-        box-shadow: 0 0 0 1px #006241 !important;
+        border-color: var(--sb-green-accent) !important;
+        box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important;
     }
 
-    /* 提示框/警告框样式调整 */
-    div[data-testid="stAlert"] {
-        background-color: rgba(255, 255, 255, 0.7) !important;
-        border-left: 5px solid #006241 !important;
-        border-radius: 4px !important;
-        color: #1E3932 !important;
+    /* ── Primary Button ── */
+    .stButton > button[kind="primary"],
+    .stButton > button[data-testid="stBaseButton-primary"] {
+        background: var(--sb-green) !important;
+        color: var(--sb-white) !important;
+        border: none !important;
+        border-radius: 24px !important;
+        padding: 10px 32px !important;
+        font-family: 'Source Sans 3', sans-serif !important;
+        font-weight: 600 !important;
+        font-size: 1rem !important;
+        letter-spacing: 0.3px;
+        transition: all 0.2s ease !important;
+    }
+    .stButton > button[kind="primary"]:hover,
+    .stButton > button[data-testid="stBaseButton-primary"]:hover {
+        background: var(--sb-green-light) !important;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(30,57,50,0.2) !important;
     }
 
-    /* 分割线颜色 */
+    /* ── Spinner ── */
+    .stSpinner > div {
+        border-top-color: var(--sb-green-accent) !important;
+    }
+
+    /* ── Divider ── */
     hr {
-        border-color: #D4D0C5 !important;
+        border-color: var(--sb-cream-dark) !important;
+        opacity: 0.6;
+    }
+
+    /* ── Footer ── */
+    .footer-text {
+        text-align: center;
+        font-family: 'Source Sans 3', sans-serif;
+        font-size: 0.82rem;
+        color: #9B9B9B;
+        padding-top: 8px;
+    }
+
+    /* ── Hide default Streamlit elements ── */
+    [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] {
+        display: none;
+    }
+
+    /* ── Pipeline Step Indicators ── */
+    .pipeline-steps {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 24px;
+    }
+    .pipeline-step {
+        flex: 1;
+        background: var(--sb-white);
+        border: 1px solid var(--sb-cream-dark);
+        border-radius: 8px;
+        padding: 10px 14px;
+        text-align: center;
+        font-family: 'Source Sans 3', sans-serif;
+        font-size: 0.82rem;
+        color: var(--sb-text-body);
+        font-weight: 500;
+    }
+    .pipeline-step .step-num {
+        display: block;
+        font-size: 0.7rem;
+        color: var(--sb-green-accent);
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        margin-bottom: 2px;
     }
 </style>
-
-<div style="background-color: #2a3f36; padding: 40px; border-radius: 12px; margin-bottom: 30px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); position: relative; overflow: hidden;">
-    <div style="position: absolute; right: -50px; top: -50px; width: 300px; height: 300px; background-color: #354e43; border-radius: 50%;"></div>
-    
-    <div style="position: relative; z-index: 1;">
-        <img src="https://upload.wikimedia.org/wikipedia/en/d/d3/Starbucks_Corporation_Logo_2011.svg" width="55" alt="Starbucks Logo" style="margin-bottom: 12px;">
-        
-        <h1 style="color: #ffffff !important; margin: 0; font-size: 34px; font-weight: bold; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;">
-            Starbucks Review Analyzer
-        </h1>
-        
-        <hr style="border: none; border-top: 4px solid #C19A5B; width: 65px; margin: 18px 0;">
-        
-        <p style="color: #e2e8f0; font-size: 16px; margin: 0; max-width: 90%; line-height: 1.6;">
-            Instantly understand customer feedback, extract key insights, and automatically generate personalized customer service replies to enhance the Starbucks experience.
-        </p>
-    </div>
-</div>
 """, unsafe_allow_html=True)
 
 
@@ -117,7 +255,6 @@ def load_models():
     gen_model_name = "MBZUAI/LaMini-Flan-T5-248M"
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
-
     return sentiment_analyzer, gen_tokenizer, gen_model
 
 sentiment_analyzer, gen_tokenizer, gen_model = load_models()
@@ -158,7 +295,6 @@ def generate_reply(review, sentiment, summary):
             f"and invite them to visit again soon. "
             f"End with \"Sincerely, Starbucks Customer Care Team\""
         )
-
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         output_ids = gen_model.generate(
@@ -179,8 +315,35 @@ if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
 
 
+# ─── UI: Hero Banner ───
+st.markdown("""
+<div class="hero-banner">
+    <h1>☕ Starbucks Review Analyzer</h1>
+    <div class="accent-line"></div>
+    <p>Analyze customer reviews using 3 AI pipelines: Sentiment Analysis, Summarization, and Auto Service Reply.</p>
+</div>
+""", unsafe_allow_html=True)
+
+# ─── UI: Pipeline Steps ───
+st.markdown("""
+<div class="pipeline-steps">
+    <div class="pipeline-step">
+        <span class="step-num">Pipeline 1</span>
+        Sentiment Analysis
+    </div>
+    <div class="pipeline-step">
+        <span class="step-num">Pipeline 2</span>
+        Summarization
+    </div>
+    <div class="pipeline-step">
+        <span class="step-num">Pipeline 3</span>
+        Service Reply
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+
 # ─── UI: Input ───
-# (去除了原本这里的 st.title 和 st.markdown，因为已经在顶部用 HTML 写好了)
 review = st.text_area("Enter a customer review:", height=150)
 
 if st.button("🔍 Analyze", type="primary"):
@@ -199,41 +362,63 @@ if st.button("🔍 Analyze", type="primary"):
 
 # ─── UI: Results ───
 if st.session_state.sentiment_result is not None:
-    st.divider()
+    st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
 
-    st.subheader("Sentiment")
+    # Sentiment Card
     if st.session_state.sentiment_result == "Negative":
-        st.error(f"😞 {st.session_state.sentiment_result} "
-                 f"(Confidence: {st.session_state.confidence_result:.1%})")
+        badge_class = "sentiment-negative"
+        emoji = "😞"
     else:
-        st.success(f"😊 {st.session_state.sentiment_result} "
-                   f"(Confidence: {st.session_state.confidence_result:.1%})")
+        badge_class = "sentiment-positive"
+        emoji = "😊"
 
-    st.subheader("Summary")
-    st.info(st.session_state.summary_result)
+    st.markdown(f"""
+    <div class="card">
+        <div class="card-header"><span class="icon">📊</span> Sentiment Analysis</div>
+        <div class="sentiment-badge {badge_class}">
+            {emoji} {st.session_state.sentiment_result} &nbsp;·&nbsp; Confidence: {st.session_state.confidence_result:.1%}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.subheader("Suggested Service Reply")
+    # Summary Card
+    st.markdown(f"""
+    <div class="card">
+        <div class="card-header"><span class="icon">📝</span> Review Summary</div>
+        <div class="summary-box">{st.session_state.summary_result}</div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # Reply Card
+    st.markdown("""
+    <div class="card" style="padding-bottom: 8px;">
+        <div class="card-header"><span class="icon">💬</span> Suggested Service Reply</div>
+    </div>
+    """, unsafe_allow_html=True)
+
     edited = st.text_area(
-        "Edit your reply:",
+        "Edit your reply before sending:",
         value=st.session_state.reply_result,
         height=200,
         key="final_reply"
     )
 
+    # Copy button
     safe_text = edited.replace("`", "\\`").replace("$", "\\$")
     copy_html = f"""
     <button onclick="navigator.clipboard.writeText(`{safe_text}`);
         this.innerText='✅ Copied!';
         setTimeout(()=>this.innerText='📋 Copy to Clipboard',2000);"
-        style="padding:10px 24px; background:#006241; color:white;
-        border:none; border-radius:50px; font-size:14px; font-weight:bold; 
-        cursor:pointer; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+        style="padding:10px 24px; background:#1E3932; color:white;
+        border:none; border-radius:20px; font-size:14px; cursor:pointer;
+        font-family:'Source Sans 3',sans-serif; font-weight:600;
+        transition: background 0.2s;">
         📋 Copy to Clipboard
     </button>
     """
-    st.components.v1.html(copy_html, height=60)
+    st.components.v1.html(copy_html, height=55)
 
 
 # ─── UI: Footer ───
-st.divider()
-st.caption("ISOM5240 Group Project | Crafted with ☕")
+st.markdown("<hr>", unsafe_allow_html=True)
+st.markdown('<p class="footer-text">ISOM5240 Group Project &nbsp;·&nbsp; Powered by Hugging Face Transformers</p>', unsafe_allow_html=True)
