@@ -5,20 +5,20 @@ os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-
+ 
 # ─── Page config ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
     page_icon="☕",
     layout="centered"
 )
-
+ 
 # ─── Custom CSS: Starbucks Brand Theme ───
 st.markdown("""
 <style>
     /* ── Import Fonts ── */
     @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
-
+ 
     /* ── Starbucks Brand Colors ── */
     :root {
         --sb-green: #1E3932;
@@ -34,7 +34,7 @@ st.markdown("""
         --sb-red: #D62B1E;
         --sb-blue-light: #EBF4F0;
     }
-
+ 
     /* ── Global Background ── */
     .stApp, .main, [data-testid="stAppViewContainer"] {
         background-color: var(--sb-cream) !important;
@@ -45,7 +45,7 @@ st.markdown("""
     section[data-testid="stSidebar"] {
         background-color: var(--sb-cream-dark) !important;
     }
-
+ 
     /* ── Typography ── */
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Lora', Georgia, serif !important;
@@ -55,7 +55,7 @@ st.markdown("""
         font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important;
         color: var(--sb-text-body) !important;
     }
-
+ 
     /* ── Hero Banner ── */
     .hero-banner {
         background: linear-gradient(135deg, var(--sb-green) 0%, #2D5A4E 100%);
@@ -94,7 +94,7 @@ st.markdown("""
         border-radius: 2px;
         margin: 16px 0;
     }
-
+ 
     /* ── Card Containers ── */
     .card {
         background: var(--sb-white);
@@ -117,7 +117,7 @@ st.markdown("""
     .card-header .icon {
         font-size: 1.2rem;
     }
-
+ 
     /* ── Sentiment Badge ── */
     .sentiment-badge {
         display: inline-flex;
@@ -139,7 +139,7 @@ st.markdown("""
         color: var(--sb-red);
         border: 1px solid rgba(214,43,30,0.12);
     }
-
+ 
     /* ── Summary Box ── */
     .summary-box {
         background: var(--sb-cream);
@@ -150,7 +150,7 @@ st.markdown("""
         line-height: 1.7;
         color: var(--sb-text-body);
     }
-
+ 
     /* ── Text Area Styling ── */
     .stTextArea textarea {
         background: var(--sb-white) !important;
@@ -166,7 +166,7 @@ st.markdown("""
         border-color: var(--sb-green-accent) !important;
         box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important;
     }
-
+ 
     /* ── Primary Button ── */
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="stBaseButton-primary"] {
@@ -187,18 +187,18 @@ st.markdown("""
         transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(30,57,50,0.2) !important;
     }
-
+ 
     /* ── Spinner ── */
     .stSpinner > div {
         border-top-color: var(--sb-green-accent) !important;
     }
-
+ 
     /* ── Divider ── */
     hr {
         border-color: var(--sb-cream-dark) !important;
         opacity: 0.6;
     }
-
+ 
     /* ── Footer ── */
     .footer-text {
         text-align: center;
@@ -207,12 +207,12 @@ st.markdown("""
         color: #9B9B9B;
         padding-top: 8px;
     }
-
+ 
     /* ── Hide default Streamlit elements ── */
     [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] {
         display: none;
     }
-
+ 
     /* ── Pipeline Step Indicators ── */
     .pipeline-steps {
         display: flex;
@@ -231,7 +231,7 @@ st.markdown("""
         color: var(--sb-text-body);
         font-weight: 500;
     }
-    .pipeline-step .step-num {
+       .pipeline-step .step-num {
         display: block;
         font-size: 0.7rem;
         color: var(--sb-green-accent);
@@ -242,8 +242,8 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
-
+ 
+ 
 # ─── Load models (cached) ───
 @st.cache_resource(show_spinner="Loading models...")
 def load_models():
@@ -256,16 +256,16 @@ def load_models():
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
     return sentiment_analyzer, gen_tokenizer, gen_model
-
+ 
 sentiment_analyzer, gen_tokenizer, gen_model = load_models()
-
-
+ 
+ 
 # ─── Pipeline functions ───
 def analyze_sentiment(review):
     result = sentiment_analyzer(review)[0]
     return result["label"], result["score"]
-
-
+ 
+ 
 def generate_summary(review):
     prompt = f"Summarize the following customer review in 1-2 sentences:\n\n{review}"
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
@@ -274,8 +274,8 @@ def generate_summary(review):
             **inputs, max_length=80, num_beams=4, early_stopping=True
         )
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
-
+ 
+ 
 def generate_reply(review, sentiment, summary):
     if sentiment == "Negative":
         prompt = (
@@ -302,8 +302,8 @@ def generate_reply(review, sentiment, summary):
             no_repeat_ngram_size=3, early_stopping=True
         )
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
-
+ 
+ 
 # ─── Session state ───
 if "sentiment_result" not in st.session_state:
     st.session_state.sentiment_result = None
@@ -313,8 +313,8 @@ if "summary_result" not in st.session_state:
     st.session_state.summary_result = ""
 if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
-
-
+ 
+ 
 # ─── UI: Hero Banner ───
 st.markdown("""
 <div class="hero-banner">
@@ -323,7 +323,7 @@ st.markdown("""
     <p>Analyze customer reviews using 3 AI pipelines: Sentiment Analysis, Summarization, and Auto Service Reply.</p>
 </div>
 """, unsafe_allow_html=True)
-
+ 
 # ─── UI: Pipeline Steps ───
 st.markdown("""
 <div class="pipeline-steps">
@@ -341,11 +341,11 @@ st.markdown("""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
-
+ 
+ 
 # ─── UI: Input ───
 review = st.text_area("Enter a customer review:", height=150)
-
+ 
 if st.button("🔍 Analyze", type="primary"):
     if review.strip():
         with st.spinner("Analyzing sentiment..."):
@@ -358,12 +358,12 @@ if st.button("🔍 Analyze", type="primary"):
         with st.spinner("Generating service reply..."):
             reply = generate_reply(review, sentiment, summary)
             st.session_state.reply_result = reply
-
-
+ 
+ 
 # ─── UI: Results ───
 if st.session_state.sentiment_result is not None:
     st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
-
+ 
     # Sentiment Card
     if st.session_state.sentiment_result == "Negative":
         badge_class = "sentiment-negative"
@@ -371,7 +371,7 @@ if st.session_state.sentiment_result is not None:
     else:
         badge_class = "sentiment-positive"
         emoji = "😊"
-
+ 
     st.markdown(f"""
     <div class="card">
         <div class="card-header"><span class="icon">📊</span> Sentiment Analysis</div>
@@ -380,7 +380,7 @@ if st.session_state.sentiment_result is not None:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
+ 
     # Summary Card
     st.markdown(f"""
     <div class="card">
@@ -388,21 +388,21 @@ if st.session_state.sentiment_result is not None:
         <div class="summary-box">{st.session_state.summary_result}</div>
     </div>
     """, unsafe_allow_html=True)
-
+ 
     # Reply Card
     st.markdown("""
     <div class="card" style="padding-bottom: 8px;">
         <div class="card-header"><span class="icon">💬</span> Suggested Service Reply</div>
     </div>
     """, unsafe_allow_html=True)
-
+ 
     edited = st.text_area(
         "Edit your reply before sending:",
         value=st.session_state.reply_result,
         height=200,
         key="final_reply"
     )
-
+ 
     # Copy button
     safe_text = edited.replace("`", "\\`").replace("$", "\\$")
     copy_html = f"""
@@ -417,8 +417,9 @@ if st.session_state.sentiment_result is not None:
     </button>
     """
     st.components.v1.html(copy_html, height=55)
-
-
+ 
+ 
 # ─── UI: Footer ───
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown('<p class="footer-text">ISOM5240 Group Project &nbsp;·&nbsp; Powered by Hugging Face Transformers</p>', unsafe_allow_html=True)
+ 
