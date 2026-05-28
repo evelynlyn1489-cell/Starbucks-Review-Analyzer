@@ -9,7 +9,7 @@ from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 # ─── Page config ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
-    page_icon="https://img.icons8.com/bubbles/100/starbucks.png",
+    page_icon="https://img.icons8.com/fluency/48/starbucks.png",
     layout="centered"
 )
 
@@ -253,7 +253,7 @@ if "reply_key" not in st.session_state:
 st.markdown("""
 <div class="hero-banner">
     <div class="hero-title">
-        <img src="https://img.icons8.com/bubbles/100/starbucks.png"
+        <img src="https://img.icons8.com/fluency/48/starbucks.png"
              width="48" height="48" style="display:inline-block;vertical-align:middle;">
         Starbucks Review Analyzer
     </div>
