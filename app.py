@@ -6,7 +6,7 @@ import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
-# ─── Page config (Starbucks icon as favicon) ───
+# ─── Page config ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
     page_icon="https://img.icons8.com/bubbles/100/starbucks.png",
@@ -18,7 +18,7 @@ st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
 
-    /* Force light mode regardless of system setting */
+    /* Force light mode */
     [data-testid="stAppViewContainer"],
     [data-testid="stApp"],
     .stApp {
@@ -32,21 +32,25 @@ st.markdown("""
         --sb-cream: #F2F0EB;
         --sb-cream-dark: #E8E5DF;
         --sb-gold: #CBA258;
-        --sb-text-dark: #1E3932;
         --sb-text-body: #3C3C3C;
-        --sb-white: #FFFFFF;
-        --sb-red-light: #FDEAEA;
-        --sb-red: #D62B1E;
-        --sb-blue-light: #EBF4F0;
     }
 
-    .stApp, .main, [data-testid="stAppViewContainer"] { background-color: var(--sb-cream) !important; }
-    [data-testid="stHeader"] { background-color: var(--sb-cream) !important; }
-    section[data-testid="stSidebar"] { background-color: var(--sb-cream-dark) !important; }
+    .stApp, .main, [data-testid="stAppViewContainer"] { background-color: #F2F0EB !important; }
+    [data-testid="stHeader"] { background-color: #F2F0EB !important; }
+    section[data-testid="stSidebar"] { background-color: #E8E5DF !important; }
 
-    h1, h2, h3, h4, h5, h6 { font-family: 'Lora', Georgia, serif !important; color: var(--sb-green) !important; }
-    p, li, span, div, label, .stMarkdown { font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important; color: var(--sb-text-body) !important; }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Lora', Georgia, serif !important;
+        color: #1E3932 !important;
+        -webkit-text-fill-color: #1E3932 !important;
+    }
+    p, li, span, div, label, .stMarkdown {
+        font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important;
+        color: #3C3C3C !important;
+        -webkit-text-fill-color: #3C3C3C !important;
+    }
 
+    /* Hero banner */
     .hero-banner {
         background: linear-gradient(135deg, #1E3932 0%, #2D5A4E 100%);
         border-radius: 16px; padding: 40px 36px 32px; margin-bottom: 32px;
@@ -56,38 +60,75 @@ st.markdown("""
         content: ''; position: absolute; top: -40px; right: -40px;
         width: 200px; height: 200px; background: rgba(255,255,255,0.04); border-radius: 50%;
     }
-    .hero-banner h1 {
-        color: #FFFFFF !important; font-size: 2.2rem !important;
-        margin-bottom: 8px !important; letter-spacing: -0.5px;
+    .hero-banner .hero-title {
+        color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important;
+        font-family: 'Lora', Georgia, serif !important;
+        font-size: 2.2rem !important; font-weight: 700 !important;
+        margin: 0 0 8px 0 !important; letter-spacing: -0.5px;
         display: flex; align-items: center; gap: 12px;
     }
-    .hero-banner .subtitle {
-        color: #D4E9E2 !important; font-size: 0.95rem !important;
-        margin: 0 !important; font-family: 'Source Sans 3', sans-serif !important;
+    .hero-banner .accent-line {
+        width: 48px; height: 3px; background: #CBA258; border-radius: 2px; margin: 16px 0 12px;
     }
-    .hero-banner .accent-line { width: 48px; height: 3px; background: var(--sb-gold); border-radius: 2px; margin: 16px 0 12px; }
+    .hero-banner .hero-sub {
+        color: #D4E9E2 !important; -webkit-text-fill-color: #D4E9E2 !important;
+        font-family: 'Source Sans 3', sans-serif !important;
+        font-size: 0.95rem !important; margin: 0 !important;
+    }
 
-    .card { background: var(--sb-white); border-radius: 12px; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(30,57,50,0.06); border: 1px solid rgba(30,57,50,0.06); }
-    .card-header { font-family: 'Lora', Georgia, serif; font-size: 1.1rem; font-weight: 600; color: var(--sb-green); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
-    .card-header .icon { font-size: 1.2rem; }
+    /* Cards */
+    .card {
+        background: #FFFFFF; border-radius: 12px; padding: 28px; margin-bottom: 20px;
+        box-shadow: 0 1px 4px rgba(30,57,50,0.06); border: 1px solid rgba(30,57,50,0.06);
+    }
+    .card-header {
+        font-family: 'Lora', Georgia, serif; font-size: 1.1rem; font-weight: 600;
+        color: #1E3932 !important; -webkit-text-fill-color: #1E3932 !important;
+        margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
+    }
 
-    .sentiment-badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 10px; font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 1rem; }
-    .sentiment-positive { background: var(--sb-blue-light); color: #1E3932; border: 1px solid rgba(0,112,74,0.15); }
-    .sentiment-negative { background: var(--sb-red-light); color: #D62B1E; border: 1px solid rgba(214,43,30,0.12); }
+    /* Sentiment badges */
+    .sentiment-badge {
+        display: inline-flex; align-items: center; gap: 10px;
+        padding: 12px 20px; border-radius: 10px;
+        font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 1rem;
+    }
+    .sentiment-positive {
+        background: #EBF4F0;
+        color: #1E3932 !important; -webkit-text-fill-color: #1E3932 !important;
+        border: 1px solid rgba(0,112,74,0.15);
+    }
+    .sentiment-negative {
+        background: #FDEAEA;
+        color: #D62B1E !important; -webkit-text-fill-color: #D62B1E !important;
+        border: 1px solid rgba(214,43,30,0.12);
+    }
 
-    .summary-box { background: var(--sb-cream); border-left: 3px solid var(--sb-gold); border-radius: 0 10px 10px 0; padding: 18px 22px; font-size: 0.98rem; line-height: 1.7; color: #3C3C3C; }
+    /* Summary box */
+    .summary-box {
+        background: #F2F0EB; border-left: 3px solid #CBA258; border-radius: 0 10px 10px 0;
+        padding: 18px 22px; font-size: 0.98rem; line-height: 1.7;
+        color: #3C3C3C !important; -webkit-text-fill-color: #3C3C3C !important;
+    }
 
+    /* Text area */
     .stTextArea textarea {
-        background: #FFFFFF !important; border: 1.5px solid var(--sb-cream-dark) !important;
+        background: #FFFFFF !important; border: 1.5px solid #E8E5DF !important;
         border-radius: 10px !important; font-family: 'Source Sans 3', sans-serif !important;
-        font-size: 0.95rem !important; color: #3C3C3C !important;
+        font-size: 0.95rem !important;
+        color: #3C3C3C !important; -webkit-text-fill-color: #3C3C3C !important;
         padding: 16px !important; transition: border-color 0.2s ease;
     }
-    .stTextArea textarea:focus { border-color: var(--sb-green-accent) !important; box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important; }
+    .stTextArea textarea:focus {
+        border-color: #008248 !important;
+        box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important;
+    }
 
+    /* Buttons */
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="stBaseButton-primary"] {
-        background: #1E3932 !important; color: #FFFFFF !important;
+        background: #1E3932 !important;
+        color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important;
         border: none !important; border-radius: 24px !important; padding: 10px 32px !important;
         font-family: 'Source Sans 3', sans-serif !important; font-weight: 600 !important;
         font-size: 1rem !important; letter-spacing: 0.3px; transition: all 0.2s ease !important;
@@ -99,21 +140,41 @@ st.markdown("""
     }
     .stButton > button,
     .stButton > button span,
-    .stButton > button p { color: #FFFFFF !important; }
+    .stButton > button p {
+        color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important;
+    }
 
-    .stSpinner > div { border-top-color: var(--sb-green-accent) !important; }
-    hr { border-color: var(--sb-cream-dark) !important; opacity: 0.6; }
-    .footer-text { text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; color: #9B9B9B !important; padding-top: 8px; }
+    .stSpinner > div { border-top-color: #008248 !important; }
+    hr { border-color: #E8E5DF !important; opacity: 0.6; }
+
+    .footer-text {
+        text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem;
+        color: #9B9B9B !important; -webkit-text-fill-color: #9B9B9B !important; padding-top: 8px;
+    }
+
     [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] { display: none; }
 
+    /* How to guide */
     .how-to-guide {
-        background: var(--sb-white); border: 1px solid var(--sb-cream-dark);
+        background: #FFFFFF; border: 1px solid #E8E5DF;
         border-radius: 12px; padding: 22px 28px; margin-bottom: 24px;
         box-shadow: 0 1px 4px rgba(30,57,50,0.06);
     }
-    .guide-header { font-family: 'Lora', Georgia, serif; font-size: 1rem; font-weight: 600; color: #1E3932; margin-bottom: 14px; }
-    .guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-    .guide-steps li { display: flex; align-items: flex-start; gap: 12px; font-family: 'Source Sans 3', sans-serif; font-size: 0.93rem; color: #3C3C3C; line-height: 1.5; }
+    .guide-header {
+        font-family: 'Lora', Georgia, serif; font-size: 1rem; font-weight: 600;
+        color: #1E3932 !important; -webkit-text-fill-color: #1E3932 !important;
+        margin-bottom: 14px;
+    }
+    .guide-steps {
+        list-style: none; padding: 0; margin: 0;
+        display: flex; flex-direction: column; gap: 10px;
+    }
+    .guide-steps li {
+        display: flex; align-items: flex-start; gap: 12px;
+        font-family: 'Source Sans 3', sans-serif; font-size: 0.93rem;
+        color: #3C3C3C !important; -webkit-text-fill-color: #3C3C3C !important;
+        line-height: 1.5;
+    }
     .guide-icon { font-size: 1.1rem; min-width: 24px; margin-top: 1px; }
 </style>
 """, unsafe_allow_html=True)
@@ -191,13 +252,13 @@ if "reply_key" not in st.session_state:
 # ─── UI: Hero Banner ───
 st.markdown("""
 <div class="hero-banner">
-    <h1>
-        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png"
+    <div class="hero-title">
+        <img src="https://img.icons8.com/bubbles/100/starbucks.png"
              width="48" height="48" style="display:inline-block;vertical-align:middle;">
         Starbucks Review Analyzer
-    </h1>
+    </div>
     <div class="accent-line"></div>
-    <p class="subtitle">AI-powered customer feedback analysis</p>
+    <div class="hero-sub">AI-powered customer feedback analysis</div>
 </div>
 """, unsafe_allow_html=True)
 
