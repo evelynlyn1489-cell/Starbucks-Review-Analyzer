@@ -60,7 +60,6 @@ Starbucks-Review-Analyzer/
 ├── test.csv                # Test set (original distribution)
 ├── starbucks_cleaned.csv   # Full cleaned dataset with all columns
 ├── DL1.ipynb               # Main notebook (preprocessing + model selection + fine-tuning)
-├── model_comparison_results.csv    # Phase 2 model comparison output
 └── Experimental_Results.xlsx       # All experimental results for submission
 ```
 
