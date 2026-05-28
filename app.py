@@ -1,30 +1,25 @@
 import os
 os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
-
 import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
-
 # ─── Page config ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
-    page_icon="https://img.icons8.com/fluency/48/starbucks.png",
+    page_icon="https://img.icons8.com/fluency/96/starbucks.png",
     layout="centered"
 )
-
 # ─── Custom CSS: Starbucks Brand Theme ───
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
-
     /* Force light mode */
     [data-testid="stAppViewContainer"],
     [data-testid="stApp"],
     .stApp {
         color-scheme: light !important;
     }
-
     :root {
         --sb-green: #1E3932;
         --sb-green-light: #00704A;
@@ -34,11 +29,9 @@ st.markdown("""
         --sb-gold: #CBA258;
         --sb-text-body: #3C3C3C;
     }
-
     .stApp, .main, [data-testid="stAppViewContainer"] { background-color: #F2F0EB !important; }
     [data-testid="stHeader"] { background-color: #F2F0EB !important; }
     section[data-testid="stSidebar"] { background-color: #E8E5DF !important; }
-
     h1, h2, h3, h4, h5, h6 {
         font-family: 'Lora', Georgia, serif !important;
         color: #1E3932 !important;
@@ -49,7 +42,6 @@ st.markdown("""
         color: #3C3C3C !important;
         -webkit-text-fill-color: #3C3C3C !important;
     }
-
     /* Hero banner */
     .hero-banner {
         background: linear-gradient(135deg, #1E3932 0%, #2D5A4E 100%);
@@ -75,7 +67,6 @@ st.markdown("""
         font-family: 'Source Sans 3', sans-serif !important;
         font-size: 0.95rem !important; margin: 0 !important;
     }
-
     /* Cards */
     .card {
         background: #FFFFFF; border-radius: 12px; padding: 28px; margin-bottom: 20px;
@@ -86,7 +77,6 @@ st.markdown("""
         color: #1E3932 !important; -webkit-text-fill-color: #1E3932 !important;
         margin-bottom: 14px; display: flex; align-items: center; gap: 8px;
     }
-
     /* Sentiment badges */
     .sentiment-badge {
         display: inline-flex; align-items: center; gap: 10px;
@@ -103,14 +93,12 @@ st.markdown("""
         color: #D62B1E !important; -webkit-text-fill-color: #D62B1E !important;
         border: 1px solid rgba(214,43,30,0.12);
     }
-
     /* Summary box */
     .summary-box {
         background: #F2F0EB; border-left: 3px solid #CBA258; border-radius: 0 10px 10px 0;
         padding: 18px 22px; font-size: 0.98rem; line-height: 1.7;
         color: #3C3C3C !important; -webkit-text-fill-color: #3C3C3C !important;
     }
-
     /* Text area */
     .stTextArea textarea {
         background: #FFFFFF !important; border: 1.5px solid #E8E5DF !important;
@@ -123,7 +111,6 @@ st.markdown("""
         border-color: #008248 !important;
         box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important;
     }
-
     /* Buttons */
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="stBaseButton-primary"] {
@@ -143,17 +130,13 @@ st.markdown("""
     .stButton > button p {
         color: #FFFFFF !important; -webkit-text-fill-color: #FFFFFF !important;
     }
-
     .stSpinner > div { border-top-color: #008248 !important; }
     hr { border-color: #E8E5DF !important; opacity: 0.6; }
-
     .footer-text {
         text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem;
         color: #9B9B9B !important; -webkit-text-fill-color: #9B9B9B !important; padding-top: 8px;
     }
-
     [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] { display: none; }
-
     /* How to guide */
     .how-to-guide {
         background: #FFFFFF; border: 1px solid #E8E5DF;
@@ -178,8 +161,6 @@ st.markdown("""
     .guide-icon { font-size: 1.1rem; min-width: 24px; margin-top: 1px; }
 </style>
 """, unsafe_allow_html=True)
-
-
 # ─── Load models (cached) ───
 @st.cache_resource(show_spinner="Loading models...")
 def load_models():
@@ -192,22 +173,17 @@ def load_models():
     gen_tokenizer = AutoTokenizer.from_pretrained(gen_model_name)
     gen_model = AutoModelForSeq2SeqLM.from_pretrained(gen_model_name)
     return sentiment_analyzer, gen_tokenizer, gen_model
-
 sentiment_analyzer, gen_tokenizer, gen_model = load_models()
-
-
 # ─── Pipeline functions ───
 def analyze_sentiment(review):
     result = sentiment_analyzer(review)[0]
     return result["label"], result["score"]
-
 def generate_summary(review):
     prompt = f"Summarize the following customer review in 1-2 sentences:\n\n{review}"
     inputs = gen_tokenizer(prompt, return_tensors="pt", truncation=True, max_length=512)
     with torch.no_grad():
         output_ids = gen_model.generate(**inputs, max_length=80, num_beams=4, early_stopping=True)
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
 def generate_reply(review, sentiment, summary):
     if sentiment == "Negative":
         prompt = (
@@ -234,8 +210,6 @@ def generate_reply(review, sentiment, summary):
             no_repeat_ngram_size=3, early_stopping=True
         )
     return gen_tokenizer.decode(output_ids[0], skip_special_tokens=True)
-
-
 # ─── Session state ───
 if "sentiment_result" not in st.session_state:
     st.session_state.sentiment_result = None
@@ -247,13 +221,11 @@ if "reply_result" not in st.session_state:
     st.session_state.reply_result = ""
 if "reply_key" not in st.session_state:
     st.session_state.reply_key = 0
-
-
 # ─── UI: Hero Banner ───
 st.markdown("""
 <div class="hero-banner">
     <div class="hero-title">
-        <img src="https://img.icons8.com/fluency/48/starbucks.png"
+        <img src="https://img.icons8.com/fluency/96/starbucks.png"
              width="48" height="48" style="display:inline-block;vertical-align:middle;">
         Starbucks Review Analyzer
     </div>
@@ -261,7 +233,6 @@ st.markdown("""
     <div class="hero-sub">AI-powered customer feedback analysis</div>
 </div>
 """, unsafe_allow_html=True)
-
 # ─── UI: How to Use Guide ───
 st.markdown("""
 <div class="how-to-guide">
@@ -275,11 +246,8 @@ st.markdown("""
     </ol>
 </div>
 """, unsafe_allow_html=True)
-
-
 # ─── UI: Input ───
 review = st.text_area("Enter a customer review:", height=150)
-
 if st.button("🔍 Analyze", type="primary"):
     if review.strip():
         with st.spinner("Analyzing sentiment..."):
@@ -295,12 +263,9 @@ if st.button("🔍 Analyze", type="primary"):
             st.session_state.reply_key += 1
     else:
         st.warning("Please enter a review before analyzing.")
-
-
 # ─── UI: Results ───
 if st.session_state.sentiment_result is not None:
     st.markdown("<div style='height: 16px'></div>", unsafe_allow_html=True)
-
     # Sentiment Card
     badge_class = "sentiment-negative" if st.session_state.sentiment_result == "Negative" else "sentiment-positive"
     emoji = "😞" if st.session_state.sentiment_result == "Negative" else "😊"
@@ -312,7 +277,6 @@ if st.session_state.sentiment_result is not None:
         </div>
     </div>
     """, unsafe_allow_html=True)
-
     # Summary Card
     st.markdown(f"""
     <div class="card">
@@ -320,21 +284,18 @@ if st.session_state.sentiment_result is not None:
         <div class="summary-box">{st.session_state.summary_result}</div>
     </div>
     """, unsafe_allow_html=True)
-
     # Reply Card
     st.markdown("""
     <div class="card" style="padding-bottom: 8px;">
         <div class="card-header"><span class="icon">💬</span> Auto Service Reply</div>
     </div>
     """, unsafe_allow_html=True)
-
     edited = st.text_area(
         "Edit your reply before copying:",
         value=st.session_state.reply_result,
         height=200,
         key=f"final_reply_{st.session_state.reply_key}"
     )
-
     # Copy button
     safe_text = edited.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
     copy_html = f"""
@@ -377,8 +338,6 @@ if st.session_state.sentiment_result is not None:
     </button>
     """
     st.components.v1.html(copy_html, height=60)
-
-
 # ─── UI: Footer ───
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown('<p class="footer-text">ISOM5240 Group Project &nbsp;·&nbsp; Powered by Hugging Face Transformers</p>', unsafe_allow_html=True)
