@@ -92,7 +92,6 @@ st.markdown("""
     .footer-text { text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; color: #9B9B9B; padding-top: 8px; }
     [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] { display: none; }
 
-    /* ── How To Guide ── */
     .how-to-guide {
         background: var(--sb-white); border: 1px solid var(--sb-cream-dark);
         border-radius: 12px; padding: 22px 28px; margin-bottom: 24px;
@@ -103,7 +102,6 @@ st.markdown("""
     .guide-steps li { display: flex; align-items: flex-start; gap: 12px; font-family: 'Source Sans 3', sans-serif; font-size: 0.93rem; color: var(--sb-text-body); line-height: 1.5; }
     .guide-icon { font-size: 1.1rem; min-width: 24px; margin-top: 1px; }
 
-    /* ── Force button text white ── */
     .stButton > button,
     .stButton > button span,
     .stButton > button p {
@@ -170,10 +168,16 @@ def generate_reply(review, sentiment, summary):
 
 
 # ─── Session state ───
-if "sentiment_result" not in st.session_state: st.session_state.sentiment_result = None
-if "confidence_result" not in st.session_state: st.session_state.confidence_result = None
-if "summary_result" not in st.session_state: st.session_state.summary_result = ""
-if "reply_result" not in st.session_state: st.session_state.reply_result = ""
+if "sentiment_result" not in st.session_state:
+    st.session_state.sentiment_result = None
+if "confidence_result" not in st.session_state:
+    st.session_state.confidence_result = None
+if "summary_result" not in st.session_state:
+    st.session_state.summary_result = ""
+if "reply_result" not in st.session_state:
+    st.session_state.reply_result = ""
+if "reply_key" not in st.session_state:
+    st.session_state.reply_key = 0
 
 
 # ─── UI: Hero Banner ───
@@ -218,6 +222,7 @@ if st.button("🔍 Analyze", type="primary"):
         with st.spinner("Generating service reply..."):
             reply = generate_reply(review, sentiment, summary)
             st.session_state.reply_result = reply
+            st.session_state.reply_key += 1
     else:
         st.warning("Please enter a review before analyzing.")
 
@@ -246,7 +251,7 @@ if st.session_state.sentiment_result is not None:
     </div>
     """, unsafe_allow_html=True)
 
-    # Reply Card — editable + copy button
+    # Reply Card
     st.markdown("""
     <div class="card" style="padding-bottom: 8px;">
         <div class="card-header"><span class="icon">💬</span> Auto Service Reply</div>
@@ -257,10 +262,10 @@ if st.session_state.sentiment_result is not None:
         "Edit your reply before copying:",
         value=st.session_state.reply_result,
         height=200,
-        key="final_reply"
+        key=f"final_reply_{st.session_state.reply_key}"
     )
 
-    # Robust copy with clipboard API + execCommand fallback
+    # Copy button
     safe_text = edited.replace("\\", "\\\\").replace("`", "\\`").replace("${", "\\${")
     copy_html = f"""
     <script>
@@ -302,8 +307,6 @@ if st.session_state.sentiment_result is not None:
     </button>
     """
     st.components.v1.html(copy_html, height=60)
-
-
 # ─── UI: Footer ───
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown('<p class="footer-text">ISOM5240 Group Project &nbsp;·&nbsp; Powered by Hugging Face Transformers</p>', unsafe_allow_html=True)
