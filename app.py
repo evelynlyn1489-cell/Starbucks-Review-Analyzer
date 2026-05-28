@@ -6,10 +6,10 @@ import streamlit as st
 import torch
 from transformers import pipeline, AutoTokenizer, AutoModelForSeq2SeqLM
 
-# ─── Page config ───
+# ─── Page config (Starbucks icon as favicon) ───
 st.set_page_config(
     page_title="Starbucks Review Analyzer",
-    page_icon="☕",
+    page_icon="https://img.icons8.com/bubbles/100/starbucks.png",
     layout="centered"
 )
 
@@ -17,6 +17,13 @@ st.set_page_config(
 st.markdown("""
 <style>
     @import url('https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600;700&family=Source+Sans+3:wght@300;400;500;600;700&display=swap');
+
+    /* Force light mode regardless of system setting */
+    [data-testid="stAppViewContainer"],
+    [data-testid="stApp"],
+    .stApp {
+        color-scheme: light !important;
+    }
 
     :root {
         --sb-green: #1E3932;
@@ -41,7 +48,7 @@ st.markdown("""
     p, li, span, div, label, .stMarkdown { font-family: 'Source Sans 3', 'Segoe UI', sans-serif !important; color: var(--sb-text-body) !important; }
 
     .hero-banner {
-        background: linear-gradient(135deg, var(--sb-green) 0%, #2D5A4E 100%);
+        background: linear-gradient(135deg, #1E3932 0%, #2D5A4E 100%);
         border-radius: 16px; padding: 40px 36px 32px; margin-bottom: 32px;
         position: relative; overflow: hidden;
     }
@@ -50,46 +57,53 @@ st.markdown("""
         width: 200px; height: 200px; background: rgba(255,255,255,0.04); border-radius: 50%;
     }
     .hero-banner h1 {
-        color: var(--sb-white) !important; font-size: 2.2rem !important;
+        color: #FFFFFF !important; font-size: 2.2rem !important;
         margin-bottom: 8px !important; letter-spacing: -0.5px;
         display: flex; align-items: center; gap: 12px;
     }
-    .hero-banner .accent-line { width: 48px; height: 3px; background: var(--sb-gold); border-radius: 2px; margin: 16px 0; }
+    .hero-banner .subtitle {
+        color: #D4E9E2 !important; font-size: 0.95rem !important;
+        margin: 0 !important; font-family: 'Source Sans 3', sans-serif !important;
+    }
+    .hero-banner .accent-line { width: 48px; height: 3px; background: var(--sb-gold); border-radius: 2px; margin: 16px 0 12px; }
 
     .card { background: var(--sb-white); border-radius: 12px; padding: 28px; margin-bottom: 20px; box-shadow: 0 1px 4px rgba(30,57,50,0.06); border: 1px solid rgba(30,57,50,0.06); }
     .card-header { font-family: 'Lora', Georgia, serif; font-size: 1.1rem; font-weight: 600; color: var(--sb-green); margin-bottom: 14px; display: flex; align-items: center; gap: 8px; }
     .card-header .icon { font-size: 1.2rem; }
 
     .sentiment-badge { display: inline-flex; align-items: center; gap: 10px; padding: 12px 20px; border-radius: 10px; font-family: 'Source Sans 3', sans-serif; font-weight: 600; font-size: 1rem; }
-    .sentiment-positive { background: var(--sb-blue-light); color: var(--sb-green); border: 1px solid rgba(0,112,74,0.15); }
-    .sentiment-negative { background: var(--sb-red-light); color: var(--sb-red); border: 1px solid rgba(214,43,30,0.12); }
+    .sentiment-positive { background: var(--sb-blue-light); color: #1E3932; border: 1px solid rgba(0,112,74,0.15); }
+    .sentiment-negative { background: var(--sb-red-light); color: #D62B1E; border: 1px solid rgba(214,43,30,0.12); }
 
-    .summary-box { background: var(--sb-cream); border-left: 3px solid var(--sb-gold); border-radius: 0 10px 10px 0; padding: 18px 22px; font-size: 0.98rem; line-height: 1.7; color: var(--sb-text-body); }
+    .summary-box { background: var(--sb-cream); border-left: 3px solid var(--sb-gold); border-radius: 0 10px 10px 0; padding: 18px 22px; font-size: 0.98rem; line-height: 1.7; color: #3C3C3C; }
 
     .stTextArea textarea {
-        background: var(--sb-white) !important; border: 1.5px solid var(--sb-cream-dark) !important;
+        background: #FFFFFF !important; border: 1.5px solid var(--sb-cream-dark) !important;
         border-radius: 10px !important; font-family: 'Source Sans 3', sans-serif !important;
-        font-size: 0.95rem !important; color: var(--sb-text-body) !important;
+        font-size: 0.95rem !important; color: #3C3C3C !important;
         padding: 16px !important; transition: border-color 0.2s ease;
     }
     .stTextArea textarea:focus { border-color: var(--sb-green-accent) !important; box-shadow: 0 0 0 2px rgba(0,130,72,0.1) !important; }
 
     .stButton > button[kind="primary"],
     .stButton > button[data-testid="stBaseButton-primary"] {
-        background: var(--sb-green) !important; color: var(--sb-white) !important;
+        background: #1E3932 !important; color: #FFFFFF !important;
         border: none !important; border-radius: 24px !important; padding: 10px 32px !important;
         font-family: 'Source Sans 3', sans-serif !important; font-weight: 600 !important;
         font-size: 1rem !important; letter-spacing: 0.3px; transition: all 0.2s ease !important;
     }
     .stButton > button[kind="primary"]:hover,
     .stButton > button[data-testid="stBaseButton-primary"]:hover {
-        background: var(--sb-green-light) !important; transform: translateY(-1px);
+        background: #00704A !important; transform: translateY(-1px);
         box-shadow: 0 4px 12px rgba(30,57,50,0.2) !important;
     }
+    .stButton > button,
+    .stButton > button span,
+    .stButton > button p { color: #FFFFFF !important; }
 
     .stSpinner > div { border-top-color: var(--sb-green-accent) !important; }
     hr { border-color: var(--sb-cream-dark) !important; opacity: 0.6; }
-    .footer-text { text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; color: #9B9B9B; padding-top: 8px; }
+    .footer-text { text-align: center; font-family: 'Source Sans 3', sans-serif; font-size: 0.82rem; color: #9B9B9B !important; padding-top: 8px; }
     [data-testid="stInfo"], [data-testid="stError"], [data-testid="stSuccess"] { display: none; }
 
     .how-to-guide {
@@ -97,16 +111,10 @@ st.markdown("""
         border-radius: 12px; padding: 22px 28px; margin-bottom: 24px;
         box-shadow: 0 1px 4px rgba(30,57,50,0.06);
     }
-    .guide-header { font-family: 'Lora', Georgia, serif; font-size: 1rem; font-weight: 600; color: var(--sb-green); margin-bottom: 14px; }
+    .guide-header { font-family: 'Lora', Georgia, serif; font-size: 1rem; font-weight: 600; color: #1E3932; margin-bottom: 14px; }
     .guide-steps { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px; }
-    .guide-steps li { display: flex; align-items: flex-start; gap: 12px; font-family: 'Source Sans 3', sans-serif; font-size: 0.93rem; color: var(--sb-text-body); line-height: 1.5; }
+    .guide-steps li { display: flex; align-items: flex-start; gap: 12px; font-family: 'Source Sans 3', sans-serif; font-size: 0.93rem; color: #3C3C3C; line-height: 1.5; }
     .guide-icon { font-size: 1.1rem; min-width: 24px; margin-top: 1px; }
-
-    .stButton > button,
-    .stButton > button span,
-    .stButton > button p {
-        color: #FFFFFF !important;
-    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,11 +192,12 @@ if "reply_key" not in st.session_state:
 st.markdown("""
 <div class="hero-banner">
     <h1>
-        <img src="https://cdn.simpleicons.org/starbucks/ffffff" width="42" height="42"
-             style="display:inline-block;vertical-align:middle;border-radius:50%;">
+        <img src="https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Starbucks_Corporation_Logo_2011.svg/1200px-Starbucks_Corporation_Logo_2011.svg.png"
+             width="48" height="48" style="display:inline-block;vertical-align:middle;">
         Starbucks Review Analyzer
     </h1>
     <div class="accent-line"></div>
+    <p class="subtitle">AI-powered customer feedback analysis</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -307,6 +316,8 @@ if st.session_state.sentiment_result is not None:
     </button>
     """
     st.components.v1.html(copy_html, height=60)
+
+
 # ─── UI: Footer ───
 st.markdown("<hr>", unsafe_allow_html=True)
 st.markdown('<p class="footer-text">ISOM5240 Group Project &nbsp;·&nbsp; Powered by Hugging Face Transformers</p>', unsafe_allow_html=True)
